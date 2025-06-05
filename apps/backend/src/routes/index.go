@@ -7,5 +7,7 @@ import (
 )
 
 func SetupRoutes(app *fiber.App) {
-	app.Get("/ping", handlers.Ping)
+	api := app.Group("/api")
+
+	api.Get("/ping", handlers.Ping)
 }
