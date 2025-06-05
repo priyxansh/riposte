@@ -1,0 +1,22 @@
+{
+  "name": "riposte",
+  "version": "1.0.0",
+  "private": true,
+  "description": "",
+  "packageManager": "pnpm@9.13.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "turbo": "^2.5.4"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

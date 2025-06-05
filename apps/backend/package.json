@@ -1,0 +1,13 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "scripts": {
+    "dev": "go run main.go",
+    "build": "go build -o build/main main.go"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
