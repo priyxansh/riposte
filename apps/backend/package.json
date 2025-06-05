@@ -4,8 +4,8 @@
   "description": "",
   "private": true,
   "scripts": {
-    "dev": "go run main.go",
-    "build": "go build -o build/main main.go"
+    "dev": "go run src/main.go",
+    "build": "go build -o build/main src/main.go"
   },
   "keywords": [],
   "author": "",
