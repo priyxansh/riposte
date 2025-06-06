@@ -4,7 +4,7 @@
   "description": "",
   "private": true,
   "scripts": {
-    "dev": "go run src/main.go",
+    "dev": "air -c .air.toml",
     "build": "go build -o build/main src/main.go"
   },
   "keywords": [],
