@@ -12,6 +12,7 @@ import (
 
 type Room struct {
 	RoomID  string
+	Name    string
 	Players []*Player
 	Mode    string
 	HostID  string

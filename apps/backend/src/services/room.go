@@ -16,7 +16,7 @@ var (
 )
 
 // CreateRoom generates a roomID and creates a room with the host as the first player
-func CreateRoom(mode, hostID string, hostConn *websocket.Conn) (string, error) {
+func CreateRoom(roomName, mode, hostID string, hostConn *websocket.Conn) (string, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -27,6 +27,7 @@ func CreateRoom(mode, hostID string, hostConn *websocket.Conn) (string, error) {
 	}
 
 	rooms[roomID] = &types.Room{
+		Name:   roomName,
 		RoomID: roomID,
 		Players: []*types.Player{
 			{ID: hostID, Conn: hostConn},

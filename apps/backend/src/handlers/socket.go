@@ -53,7 +53,7 @@ func SocketHandler(c *websocket.Conn) {
 
 			log.Printf("Creating room: %+v\n", payload)
 
-			roomID, err := services.CreateRoom(payload.Mode, payload.HostID, c)
+			roomID, err := services.CreateRoom(payload.RoomName, payload.Mode, payload.HostID, c)
 			response := OutgoingMessage{Event: events.CreateRoom}
 
 			if err != nil {
