@@ -22,10 +22,6 @@ func CreateRoom(roomName, mode, hostID string, hostConn *websocket.Conn) (string
 
 	roomID := uuid.NewString()
 
-	if _, exists := rooms[roomID]; exists {
-		return "", errors.New("room ID conflict")
-	}
-
 	rooms[roomID] = &types.Room{
 		Name:   roomName,
 		RoomID: roomID,
