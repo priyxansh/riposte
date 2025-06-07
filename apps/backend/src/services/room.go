@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"sync"
 
 	"riposte-backend/src/types"
@@ -14,15 +15,15 @@ var (
 	mu    sync.Mutex
 )
 
-// CreateRoom generates a roomID and creates a room with the host as first player
-func CreateRoom(mode, hostID string, hostConn *websocket.Conn) (string, bool) {
+// CreateRoom generates a roomID and creates a room with the host as the first player
+func CreateRoom(mode, hostID string, hostConn *websocket.Conn) (string, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
 	roomID := uuid.NewString()
 
 	if _, exists := rooms[roomID]; exists {
-		return "", false
+		return "", errors.New("room ID conflict")
 	}
 
 	rooms[roomID] = &types.Room{
@@ -34,17 +35,17 @@ func CreateRoom(mode, hostID string, hostConn *websocket.Conn) (string, bool) {
 		HostID: hostID,
 	}
 
-	return roomID, true
+	return roomID, nil
 }
 
 // JoinRoom adds a player with an ID and connection to a room
-func JoinRoom(roomID string, playerID string, conn *websocket.Conn) bool {
+func JoinRoom(roomID string, playerID string, conn *websocket.Conn) error {
 	mu.Lock()
 	room, exists := rooms[roomID]
 	mu.Unlock()
 
 	if !exists {
-		return false
+		return errors.New("room not found")
 	}
 
 	player := &types.Player{
@@ -53,18 +54,17 @@ func JoinRoom(roomID string, playerID string, conn *websocket.Conn) bool {
 	}
 
 	room.AddPlayer(player)
-
-	return true
+	return nil
 }
 
-// LeaveRoom removes the player connection from the room by conn and deletes room if empty
-func LeaveRoom(roomID string, conn *websocket.Conn) bool {
+// LeaveRoom removes the player connection from the room and deletes room if empty
+func LeaveRoom(roomID string, conn *websocket.Conn) error {
 	mu.Lock()
 	room, exists := rooms[roomID]
 	mu.Unlock()
 
 	if !exists {
-		return false
+		return errors.New("room not found")
 	}
 
 	room.RemovePlayerByConn(conn)
@@ -75,9 +75,10 @@ func LeaveRoom(roomID string, conn *websocket.Conn) bool {
 		mu.Unlock()
 	}
 
-	return true
+	return nil
 }
 
+// BroadcastToRoom sends a message to all connections in a room
 func BroadcastToRoom(roomID string, msgType int, msg []byte) {
 	mu.Lock()
 	room, exists := rooms[roomID]
@@ -90,6 +91,7 @@ func BroadcastToRoom(roomID string, msgType int, msg []byte) {
 	room.Broadcast(msgType, msg)
 }
 
+// GetRoom returns a pointer to a room if it exists
 func GetRoom(roomID string) *types.Room {
 	mu.Lock()
 	defer mu.Unlock()

@@ -53,13 +53,14 @@ func SocketHandler(c *websocket.Conn) {
 
 			log.Printf("Creating room: %+v\n", payload)
 
-			roomID, ok := services.CreateRoom(payload.Mode, payload.HostID, c)
+			roomID, err := services.CreateRoom(payload.Mode, payload.HostID, c)
 			response := OutgoingMessage{Event: events.CreateRoom}
 
-			if ok {
-				response.Data = map[string]string{"roomId": roomID}
+			if err != nil {
+				log.Println("create room error:", err)
+				response.Data = map[string]string{"error": err.Error()}
 			} else {
-				response.Data = map[string]string{"error": "Failed to create room"}
+				response.Data = map[string]string{"roomId": roomID}
 			}
 
 			c.WriteJSON(response)
@@ -74,13 +75,14 @@ func SocketHandler(c *websocket.Conn) {
 
 			log.Printf("Joining room: %+v\n", payload)
 
-			ok := services.JoinRoom(payload.RoomID, payload.JoinerID, c)
+			err := services.JoinRoom(payload.RoomID, payload.JoinerID, c)
 			response := OutgoingMessage{Event: events.JoinRoom}
 
-			if ok {
-				response.Data = map[string]string{"status": "joined"}
+			if err != nil {
+				log.Println("join room error:", err)
+				response.Data = map[string]string{"error": err.Error()}
 			} else {
-				response.Data = map[string]string{"error": "Failed to join room"}
+				response.Data = map[string]string{"status": "joined"}
 			}
 
 			c.WriteJSON(response)
@@ -95,13 +97,14 @@ func SocketHandler(c *websocket.Conn) {
 
 			log.Printf("Leaving room: %+v\n", payload)
 
-			ok := services.LeaveRoom(payload.RoomID, c)
+			err := services.LeaveRoom(payload.RoomID, c)
 			response := OutgoingMessage{Event: events.LeaveRoom}
 
-			if ok {
-				response.Data = map[string]string{"status": "left"}
+			if err != nil {
+				log.Println("leave room error:", err)
+				response.Data = map[string]string{"error": err.Error()}
 			} else {
-				response.Data = map[string]string{"error": "Failed to leave room"}
+				response.Data = map[string]string{"status": "left"}
 			}
 
 			c.WriteJSON(response)
