@@ -22,8 +22,22 @@ type OutgoingMessage struct {
 }
 
 func SocketHandler(c *websocket.Conn) {
+	var joinedRoomID string
+
 	defer func() {
 		log.Println("Client disconnected")
+
+		if joinedRoomID != "" {
+			log.Printf("Removing client from room %s\n", joinedRoomID)
+
+			// Remove the client from the room
+			if err := services.LeaveRoom(joinedRoomID, c); err != nil {
+				log.Println("Error leaving room:", err)
+			} else {
+				log.Printf("Client successfully removed from room %s\n", joinedRoomID)
+			}
+		}
+
 		c.Close()
 	}()
 
@@ -82,6 +96,7 @@ func SocketHandler(c *websocket.Conn) {
 				log.Println("join room error:", err)
 				response.Data = map[string]string{"error": err.Error()}
 			} else {
+				joinedRoomID = payload.RoomID
 				response.Data = map[string]string{"status": "joined"}
 			}
 
