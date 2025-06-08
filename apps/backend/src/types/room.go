@@ -1,8 +1,8 @@
 package types
 
 import (
-	"errors"
 	"log"
+	"riposte-backend/src/types/errors"
 	"slices"
 	"sync"
 )
@@ -20,16 +20,13 @@ func (r *Room) AddPlayer(player *Player) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// Limit players to 2 for 1v1 or 4 for 2v2
-	if (r.Mode == "1v1" && len(r.Players) >= 2) ||
-		(r.Mode == "2v2" && len(r.Players) >= 4) {
-		return errors.New("room is full")
+	if (r.Mode == "1v1" && len(r.Players) >= 2) || (r.Mode == "2v2" && len(r.Players) >= 4) {
+		return errors.NewGameError(errors.ErrRoomFull, "room is full")
 	}
 
-	// Prevent duplicate joins
 	for _, p := range r.Players {
 		if p.ID == player.ID {
-			return errors.New("player already in room")
+			return errors.NewGameError(errors.ErrAlreadyInRoom, "player already in room")
 		}
 	}
 

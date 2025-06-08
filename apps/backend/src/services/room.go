@@ -1,10 +1,10 @@
 package services
 
 import (
-	"errors"
 	"sync"
 
 	"riposte-backend/src/types"
+	"riposte-backend/src/types/errors"
 
 	"github.com/gofiber/websocket/v2"
 	"github.com/google/uuid"
@@ -21,7 +21,7 @@ func CreateRoom(roomName, mode, hostID string, hostConn *websocket.Conn) (string
 	defer mu.Unlock()
 
 	if mode != "1v1" && mode != "2v2" {
-		return "", errors.New("invalid game mode")
+		return "", errors.NewGameError(errors.ErrInvalidMode, "invalid game mode")
 	}
 
 	roomID := uuid.NewString()
@@ -46,7 +46,7 @@ func JoinRoom(roomID string, playerID string, conn *websocket.Conn) error {
 	mu.Unlock()
 
 	if !exists {
-		return errors.New("room not found")
+		return errors.NewGameError(errors.ErrRoomNotFound, "room not found")
 	}
 
 	player := &types.Player{
@@ -54,8 +54,7 @@ func JoinRoom(roomID string, playerID string, conn *websocket.Conn) error {
 		Conn: conn,
 	}
 
-	room.AddPlayer(player)
-	return nil
+	return room.AddPlayer(player)
 }
 
 // LeaveRoom removes the player connection from the room and deletes room if empty
@@ -65,7 +64,7 @@ func LeaveRoom(roomID string, playerId string) error {
 	mu.Unlock()
 
 	if !exists {
-		return errors.New("room not found")
+		return errors.NewGameError(errors.ErrRoomNotFound, "room not found")
 	}
 
 	room.RemovePlayerByID(playerId)

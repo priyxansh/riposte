@@ -7,6 +7,7 @@ import (
 	"riposte-backend/src/events"
 	"riposte-backend/src/services"
 	"riposte-backend/src/types"
+	"riposte-backend/src/types/errors"
 
 	"github.com/gofiber/websocket/v2"
 )
@@ -19,6 +20,19 @@ type IncomingMessage struct {
 type OutgoingMessage struct {
 	Event string `json:"event"`
 	Data  any    `json:"payload"`
+}
+
+func makeErrorPayload(err error) map[string]string {
+	if ge, ok := err.(*errors.GameError); ok {
+		return map[string]string{
+			"type":    string(ge.Type),
+			"message": ge.Message,
+		}
+	}
+	return map[string]string{
+		"type":    "internal_error",
+		"message": err.Error(),
+	}
 }
 
 func SocketHandler(c *websocket.Conn) {
@@ -72,7 +86,7 @@ func SocketHandler(c *websocket.Conn) {
 
 			if err != nil {
 				log.Println("create room error:", err)
-				response.Data = map[string]string{"error": err.Error()}
+				response.Data = makeErrorPayload(err)
 			} else {
 				joinedRoomID = roomID
 				playerID = payload.HostID
@@ -96,7 +110,7 @@ func SocketHandler(c *websocket.Conn) {
 
 			if err != nil {
 				log.Println("join room error:", err)
-				response.Data = map[string]string{"error": err.Error()}
+				response.Data = makeErrorPayload(err)
 			} else {
 				joinedRoomID = payload.RoomID
 				playerID = payload.JoinerID
@@ -120,8 +134,9 @@ func SocketHandler(c *websocket.Conn) {
 
 			if err != nil {
 				log.Println("leave room error:", err)
-				response.Data = map[string]string{"error": err.Error()}
+				response.Data = makeErrorPayload(err)
 			} else {
+				joinedRoomID = ""
 				response.Data = map[string]string{"status": "left"}
 			}
 
