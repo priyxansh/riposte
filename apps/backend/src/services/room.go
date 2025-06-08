@@ -55,7 +55,7 @@ func JoinRoom(roomID string, playerID string, conn *websocket.Conn) error {
 }
 
 // LeaveRoom removes the player connection from the room and deletes room if empty
-func LeaveRoom(roomID string, conn *websocket.Conn) error {
+func LeaveRoom(roomID string, playerId string) error {
 	mu.Lock()
 	room, exists := rooms[roomID]
 	mu.Unlock()
@@ -64,7 +64,7 @@ func LeaveRoom(roomID string, conn *websocket.Conn) error {
 		return errors.New("room not found")
 	}
 
-	room.RemovePlayerByConn(conn)
+	room.RemovePlayerByID(playerId)
 
 	if room.ConnCount() == 0 {
 		mu.Lock()

@@ -23,18 +23,18 @@ type OutgoingMessage struct {
 
 func SocketHandler(c *websocket.Conn) {
 	var joinedRoomID string
+	var playerID string
 
 	defer func() {
 		log.Println("Client disconnected")
 
-		if joinedRoomID != "" {
-			log.Printf("Removing client from room %s\n", joinedRoomID)
+		if joinedRoomID != "" && playerID != "" {
+			log.Printf("Removing player %s from room %s\n", playerID, joinedRoomID)
 
-			// Remove the client from the room
-			if err := services.LeaveRoom(joinedRoomID, c); err != nil {
+			if err := services.LeaveRoom(joinedRoomID, playerID); err != nil {
 				log.Println("Error leaving room:", err)
 			} else {
-				log.Printf("Client successfully removed from room %s\n", joinedRoomID)
+				log.Printf("Player %s successfully removed from room %s\n", playerID, joinedRoomID)
 			}
 		}
 
@@ -74,6 +74,8 @@ func SocketHandler(c *websocket.Conn) {
 				log.Println("create room error:", err)
 				response.Data = map[string]string{"error": err.Error()}
 			} else {
+				joinedRoomID = roomID
+				playerID = payload.HostID
 				response.Data = map[string]string{"roomId": roomID}
 			}
 
@@ -97,6 +99,7 @@ func SocketHandler(c *websocket.Conn) {
 				response.Data = map[string]string{"error": err.Error()}
 			} else {
 				joinedRoomID = payload.RoomID
+				playerID = payload.JoinerID
 				response.Data = map[string]string{"status": "joined"}
 			}
 
@@ -112,7 +115,7 @@ func SocketHandler(c *websocket.Conn) {
 
 			log.Printf("Leaving room: %+v\n", payload)
 
-			err := services.LeaveRoom(payload.RoomID, c)
+			err := services.LeaveRoom(payload.RoomID, playerID)
 			response := OutgoingMessage{Event: events.LeaveRoom}
 
 			if err != nil {

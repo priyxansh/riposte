@@ -3,11 +3,8 @@ package types
 import (
 	"errors"
 	"log"
-	"sync"
-
 	"slices"
-
-	"github.com/gofiber/websocket/v2"
+	"sync"
 )
 
 type Room struct {
@@ -40,12 +37,12 @@ func (r *Room) AddPlayer(player *Player) error {
 	return nil
 }
 
-func (r *Room) RemovePlayerByConn(conn *websocket.Conn) {
+func (r *Room) RemovePlayerByID(playerID string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	for i, p := range r.Players {
-		if p.Conn == conn {
+		if p.ID == playerID {
 			r.Players = slices.Delete(r.Players, i, i+1)
 			break
 		}
