@@ -20,6 +20,10 @@ func CreateRoom(roomName, mode, hostID string, hostConn *websocket.Conn) (string
 	mu.Lock()
 	defer mu.Unlock()
 
+	if mode != "1v1" && mode != "2v2" {
+		return "", errors.New("invalid game mode")
+	}
+
 	roomID := uuid.NewString()
 
 	rooms[roomID] = &types.Room{
