@@ -12,16 +12,6 @@ import (
 	"github.com/gofiber/websocket/v2"
 )
 
-type IncomingMessage struct {
-	Event string          `json:"event"`
-	Data  json.RawMessage `json:"payload"`
-}
-
-type OutgoingMessage struct {
-	Event string `json:"event"`
-	Data  any    `json:"payload"`
-}
-
 func makeErrorPayload(err error) map[string]string {
 	if ge, ok := err.(*errors.GameError); ok {
 		return map[string]string{
@@ -49,6 +39,16 @@ func SocketHandler(c *websocket.Conn) {
 				log.Println("Error leaving room:", err)
 			} else {
 				log.Printf("Player %s successfully removed from room %s\n", playerID, joinedRoomID)
+
+				// Notify other players in the room
+				var broadcastPayload types.PlayerLeftPayload
+
+				broadcastPayload.RoomID = joinedRoomID
+				broadcastPayload.PlayerID = playerID
+
+				if err := services.BroadcastToRoom(joinedRoomID, events.PlayerLeft, broadcastPayload, playerID); err != nil {
+					log.Println("Error broadcasting player left:", err)
+				}
 			}
 		}
 
@@ -64,7 +64,7 @@ func SocketHandler(c *websocket.Conn) {
 			break
 		}
 
-		var incoming IncomingMessage
+		var incoming types.IncomingMessage
 		if err := json.Unmarshal(msg, &incoming); err != nil {
 			log.Println("unmarshal error:", err)
 			continue
@@ -82,7 +82,7 @@ func SocketHandler(c *websocket.Conn) {
 			log.Printf("Creating room: %+v\n", payload)
 
 			roomID, err := services.CreateRoom(payload.RoomName, payload.Mode, payload.HostID, c)
-			response := OutgoingMessage{Event: events.CreateRoom}
+			response := types.OutgoingMessage{Event: events.CreateRoom}
 
 			if err != nil {
 				log.Println("create room error:", err)
@@ -106,7 +106,7 @@ func SocketHandler(c *websocket.Conn) {
 			log.Printf("Joining room: %+v\n", payload)
 
 			err := services.JoinRoom(payload.RoomID, payload.JoinerID, c)
-			response := OutgoingMessage{Event: events.JoinRoom}
+			response := types.OutgoingMessage{Event: events.JoinRoom}
 
 			if err != nil {
 				log.Println("join room error:", err)
@@ -119,6 +119,19 @@ func SocketHandler(c *websocket.Conn) {
 
 			c.WriteJSON(response)
 
+			// Notify other players in the room
+			if err == nil {
+				var broadcastPayload types.PlayerJoinedPayload
+				broadcastPayload.RoomID = joinedRoomID
+				broadcastPayload.JoinerID = playerID
+
+				err = services.BroadcastToRoom(joinedRoomID, events.PlayerJoined, broadcastPayload, playerID)
+
+				if err != nil {
+					log.Println("broadcast player joined error:", err)
+				}
+			}
+
 		case events.LeaveRoom:
 			var payload types.LeaveRoomPayload
 
@@ -130,7 +143,7 @@ func SocketHandler(c *websocket.Conn) {
 			log.Printf("Leaving room: %+v\n", payload)
 
 			err := services.LeaveRoom(payload.RoomID, playerID)
-			response := OutgoingMessage{Event: events.LeaveRoom}
+			response := types.OutgoingMessage{Event: events.LeaveRoom}
 
 			if err != nil {
 				log.Println("leave room error:", err)
@@ -142,6 +155,20 @@ func SocketHandler(c *websocket.Conn) {
 
 			c.WriteJSON(response)
 
+			// Notify other players in the room
+			if err == nil {
+				var broadcastPayload types.PlayerLeftPayload
+
+				broadcastPayload.RoomID = payload.RoomID
+				broadcastPayload.PlayerID = playerID
+
+				err = services.BroadcastToRoom(payload.RoomID, events.PlayerLeft, broadcastPayload, playerID)
+
+				if err != nil {
+					log.Println("broadcast player left error:", err)
+				}
+			}
+
 		case events.RoomState:
 			var payload types.RoomStatePayload
 			if err := json.Unmarshal(incoming.Data, &payload); err != nil {
@@ -152,7 +179,7 @@ func SocketHandler(c *websocket.Conn) {
 			log.Printf("Fetching room state for: %+v\n", payload)
 
 			room, err := services.GetRoom(payload.RoomID)
-			response := OutgoingMessage{Event: events.RoomState}
+			response := types.OutgoingMessage{Event: events.RoomState}
 
 			if err != nil {
 				log.Println("get room error:", err)

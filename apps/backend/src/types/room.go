@@ -52,27 +52,26 @@ func (r *Room) ConnCount() int {
 	return len(r.Players)
 }
 
-func (r *Room) Broadcast(msgType int, msg []byte) {
+func (r *Room) Broadcast(event string, payload any, exceptedPlayerIDs ...string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	var alivePlayers []*Player
-
-	for _, player := range r.Players {
-		err := player.Conn.WriteMessage(msgType, msg)
-		if err != nil {
-			log.Printf("Failed to send message to player %s: %v", player.ID, err)
-
-			// Close the broken connection
-			_ = player.Conn.Close()
-
-			// Don’t add this player to the new slice
-			continue
-		}
-
-		alivePlayers = append(alivePlayers, player)
+	if r.ConnCount() == 0 {
+		log.Println("No players in room to broadcast message")
+		return
 	}
 
-	// Remove dead players
-	r.Players = alivePlayers
+	for _, player := range r.Players {
+		if player.Conn != nil && (len(exceptedPlayerIDs) == 0 || !slices.Contains(exceptedPlayerIDs, player.ID)) {
+			err := player.Conn.WriteJSON(OutgoingMessage{
+				Event: event,
+				Data:  payload,
+			})
+			if err != nil {
+				log.Printf("Error sending message to player %s: %v", player.ID, err)
+			}
+		} else {
+			log.Printf("Player %s has no connection", player.ID)
+		}
+	}
 }

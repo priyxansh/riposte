@@ -78,17 +78,19 @@ func LeaveRoom(roomID string, playerId string) error {
 	return nil
 }
 
-// BroadcastToRoom sends a message to all connections in a room
-func BroadcastToRoom(roomID string, msgType int, msg []byte) {
+// BroadcastToRoom sends a message to all players in a room, except specified players
+func BroadcastToRoom(roomID string, event string, payload any, exceptedPlayerIDs ...string) error {
 	mu.Lock()
 	room, exists := rooms[roomID]
 	mu.Unlock()
 
 	if !exists {
-		return
+		return errors.NewGameError(errors.ErrRoomNotFound, "room not found")
 	}
 
-	room.Broadcast(msgType, msg)
+	room.Broadcast(event, payload, exceptedPlayerIDs...)
+
+	return nil
 }
 
 // GetRoom returns a pointer to a room if it exists
