@@ -142,6 +142,37 @@ func SocketHandler(c *websocket.Conn) {
 
 			c.WriteJSON(response)
 
+		case events.RoomState:
+			var payload types.RoomStatePayload
+			if err := json.Unmarshal(incoming.Data, &payload); err != nil {
+				log.Println("room state payload error:", err)
+				break
+			}
+
+			log.Printf("Fetching room state for: %+v\n", payload)
+
+			room, err := services.GetRoom(payload.RoomID)
+			response := OutgoingMessage{Event: events.RoomState}
+
+			if err != nil {
+				log.Println("get room error:", err)
+				response.Data = makeErrorPayload(err)
+			} else {
+				playerIDs := make([]string, len(room.Players))
+				for i, player := range room.Players {
+					playerIDs[i] = player.ID
+				}
+
+				response.Data = map[string]any{
+					"roomId":    room.RoomID,
+					"hostId":    room.HostID,
+					"playerIds": playerIDs,
+					"mode":      room.Mode,
+				}
+			}
+
+			c.WriteJSON(response)
+
 		default:
 			log.Println("Unhandled event:", incoming.Event)
 		}

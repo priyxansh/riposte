@@ -1,6 +1,8 @@
 package events
 
 const (
+	// Client emitted events
+
 	Connect          = "connect"
 	CreateRoom       = "create_room"
 	JoinRoom         = "join_room"
@@ -11,4 +13,10 @@ const (
 	GameState        = "game_state"
 	GameEnd          = "game_end"
 	PlayerDisconnect = "player_disconnect"
+	RoomState        = "room_state"
+
+	// Server emitted events
+
+	PlayerJoined = "player_joined"
+	PlayerLeft   = "player_left"
 )

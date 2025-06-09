@@ -92,13 +92,15 @@ func BroadcastToRoom(roomID string, msgType int, msg []byte) {
 }
 
 // GetRoom returns a pointer to a room if it exists
-func GetRoom(roomID string) *types.Room {
+func GetRoom(roomID string) (*types.Room, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
 	room, exists := rooms[roomID]
+
 	if !exists {
-		return nil
+		return nil, errors.NewGameError(errors.ErrRoomNotFound, "room not found")
 	}
-	return room
+
+	return room, nil
 }
