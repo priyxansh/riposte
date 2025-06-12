@@ -1,5 +1,5 @@
-<script>
-	let { opacity = '10', blur1 = '150px', blur2 = '120px', children } = $props();
+<script lang="ts">
+	let { blur1 = '150px', blur2 = '120px', opacity = '10', children } = $props();
 </script>
 
 <div
@@ -8,10 +8,12 @@
 	<!-- Decorative elements -->
 	<div class={`absolute inset-0 opacity-${opacity}`}>
 		<div
-			class="absolute top-1/4 left-1/4 h-1/2 w-1/2 rounded-full bg-blue-500/30 blur-[{blur1}]"
+			class="blur-shape absolute top-1/4 left-1/4 h-1/2 w-1/2 rounded-full bg-blue-500/20"
+			style="filter: blur({blur1}); will-change: filter;"
 		></div>
 		<div
-			class="absolute right-1/3 bottom-1/3 h-1/3 w-1/3 rounded-full bg-purple-500/30 blur-[{blur2}]"
+			class="blur-shape absolute right-1/3 bottom-1/3 h-1/3 w-1/3 rounded-full bg-purple-500/20"
+			style="filter: blur({blur2}); will-change: filter;"
 		></div>
 	</div>
 
@@ -31,3 +33,25 @@
 		{@render children()}
 	</div>
 </div>
+
+<style>
+	.blur-shape {
+		opacity: 0;
+		animation: fadeInBlur 1s ease-out forwards;
+	}
+
+	.blur-shape:nth-child(2) {
+		animation-delay: 200ms;
+	}
+
+	@keyframes fadeInBlur {
+		from {
+			opacity: 0;
+			transform: scale(0.95);
+		}
+		to {
+			opacity: 1;
+			transform: scale(1);
+		}
+	}
+</style>
