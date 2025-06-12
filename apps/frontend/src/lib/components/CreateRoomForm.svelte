@@ -5,8 +5,6 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
 
-	let { onSubmit, onCancel } = $props();
-
 	let roomName = $state('');
 	let selectedMode = $state({ value: '1v1', label: '1v1 - Duel' });
 
@@ -21,14 +19,10 @@
 			return;
 		}
 
-		onSubmit({
-			name: roomName,
+		console.log({
+			roomName: roomName.trim(),
 			mode: selectedMode.value
 		});
-	}
-
-	function handleCancel() {
-		onCancel();
 	}
 </script>
 
@@ -52,11 +46,13 @@
 	<div class="space-y-2">
 		<Label class="font-medium text-gray-200">Game Mode</Label>
 		<Select.Root
+			bind:value={
+				() => selectedMode.value,
+				(v) => {
+					selectedMode = gameModes.find((mode) => mode.value === v) || selectedMode;
+				}
+			}
 			type="single"
-			value={selectedMode.value}
-			onValueChange={(value) => {
-				selectedMode = gameModes.find((mode) => mode.value === value) || selectedMode;
-			}}
 		>
 			<Select.Trigger class="w-full">
 				<span>{selectedMode.label}</span>
@@ -79,7 +75,7 @@
 		</Button>
 		<Button
 			variant="outline"
-			onclick={handleCancel}
+			href="/"
 			class="flex-1 border-gray-600 bg-gray-700/50 text-gray-100 transition-transform duration-300 hover:scale-105 hover:bg-gray-600"
 		>
 			Cancel

@@ -4,7 +4,7 @@
 
 	function handleCreateRoom(roomData: { name: string; mode: string }) {
 		console.log('Creating room:', roomData);
-		
+
 		// TODO: Implement room creation logic
 		// Navigate to room or show success message
 	}
@@ -26,6 +26,6 @@
 	</Card.Header>
 
 	<Card.Content>
-		<CreateRoomForm onSubmit={handleCreateRoom} onCancel={handleCancel} />
+		<CreateRoomForm />
 	</Card.Content>
 </Card.Root>
