@@ -4,9 +4,13 @@
 	import * as Select from '$lib/components/ui/select';
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
+	import { socketManager } from '$lib/stores/socket.svelte';
+	import { goto } from '$app/navigation';
 
 	let roomName = $state('');
 	let selectedMode = $state({ value: '1v1', label: '1v1 - Duel' });
+
+	let isSubmitting = $state(false);
 
 	const gameModes = [
 		{ value: '1v1', label: '1v1 - Duel' },
@@ -14,16 +18,37 @@
 	];
 
 	function handleSubmit() {
+		if (isSubmitting) return; // Prevent multiple submissions
+
+		isSubmitting = true;
+
+		// Clear previous roomState
+		socketManager.roomState = { roomId: null, roomName: null, roomMembers: [] };
+
 		if (!roomName.trim()) {
 			// TODO: Add proper validation/error handling
 			return;
 		}
 
-		console.log({
-			roomName: roomName.trim(),
-			mode: selectedMode.value
-		});
+		socketManager.sendMessage(
+			JSON.stringify({
+				event: 'create_room',
+				payload: {
+					roomName: roomName.trim(),
+					mode: selectedMode.value,
+					hostId: crypto.randomUUID()
+				}
+			})
+		);
 	}
+
+	$effect(() => {
+		if (socketManager.roomState.roomId && isSubmitting) {
+			isSubmitting = false;
+
+			goto(`/lobby/${socketManager.roomState.roomId}`);
+		}
+	});
 </script>
 
 <div class="space-y-6">

@@ -1,8 +1,16 @@
+import { createRoomHandler } from '$lib/socket-handlers/createRoom';
+
 class SocketManager {
 	private state = $state({
 		socket: null as WebSocket | null,
 		connectionState: 'disconnected' as 'connected' | 'disconnected' | 'error',
 		error: null as Error | null
+	});
+
+	public roomState = $state({
+		roomId: null as string | null,
+		roomName: null as string | null,
+		roomMembers: [] as string[]
 	});
 
 	public get socket() {
@@ -39,6 +47,22 @@ class SocketManager {
 			this.state.connectionState = 'error';
 			this.state.error = new Error('WebSocket connection error');
 			console.error('WebSocket error:', event);
+		};
+
+		this.state.socket.onmessage = (ev) => {
+			try {
+				const data = JSON.parse(ev.data);
+
+				const event = data.event;
+				const payload = data.payload;
+
+				switch (event) {
+					case 'create_room':
+						createRoomHandler(payload);
+				}
+			} catch (error) {
+				console.error('Error handling WebSocket message:', error);
+			}
 		};
 	}
 
