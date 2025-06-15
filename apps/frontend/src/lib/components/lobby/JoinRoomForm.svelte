@@ -2,6 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
+	import { socketManager } from '$lib/stores/socket.svelte';
 
 	let roomId = $state('');
 	let isSubmitting = $state(false);
@@ -18,11 +19,16 @@
 			return;
 		}
 
-		console.log('Joining room:', {
-			roomId: roomId.trim()
-		});
+		// Clear previous roomState
+		socketManager.roomState = { roomId: null, roomName: null, roomMembers: [] };
 
-		// TODO: Implement join room logic
+		socketManager.sendMessage(
+			JSON.stringify({
+				event: 'join_room',
+				payload: { roomId: roomId.trim(), joinerId: crypto.randomUUID() }
+			})
+		);
+
 		isSubmitting = false;
 	}
 </script>
