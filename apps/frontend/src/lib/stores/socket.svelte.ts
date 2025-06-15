@@ -59,6 +59,9 @@ class SocketManager {
 				switch (event) {
 					case 'create_room':
 						createRoomHandler(payload);
+						break;
+					default:
+						console.warn(`Unhandled WebSocket event: ${event}`, payload, data);
 				}
 			} catch (error) {
 				console.error('Error handling WebSocket message:', error);
