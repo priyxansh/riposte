@@ -100,7 +100,7 @@
 		</Button>
 		<Button
 			variant="outline"
-			href="/"
+			href="/lobby"
 			class="flex-1 border-gray-600 bg-gray-700/50 text-gray-100 transition-transform duration-300 hover:scale-105 hover:bg-gray-600"
 		>
 			Cancel

@@ -16,14 +16,14 @@
 	<Card.Content>
 		<div class="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
 			<Button
-				href="/create-room"
+				href="/lobby/create-room"
 				class="flex-1 bg-blue-600 text-white transition-transform duration-300 hover:scale-105 hover:bg-blue-700"
 			>
 				Create Room
 			</Button>
 			<Button
 				variant="outline"
-				href="/join-room"
+				href="/lobby/join-room"
 				class="flex-1 border-gray-600 bg-gray-700/50 text-gray-100 transition-transform duration-300 hover:scale-105 hover:bg-gray-600"
 			>
 				Join Room
