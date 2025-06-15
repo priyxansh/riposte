@@ -13,11 +13,9 @@
 	let { children } = $props();
 </script>
 
-<div class="dark">
-	<GameBackground>
-		<div class="w-full grid-cols-2 items-center gap-20 sm:grid">
-			<Header />
-			{@render children()}
-		</div>
-	</GameBackground>
-</div>
+<GameBackground>
+	<div class="w-full grid-cols-2 items-center gap-20 sm:grid">
+		<Header />
+		{@render children()}
+	</div>
+</GameBackground>
