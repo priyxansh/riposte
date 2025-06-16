@@ -10,9 +10,6 @@ export type CreateRoomResponse = {
 	roomId: string;
 };
 
-export type JoinRoomResponse = {
-	roomId: string;
-	playerId: string;
-};
+export type JoinRoomResponse = {};
 
 export type LeaveRoomResponse = {};

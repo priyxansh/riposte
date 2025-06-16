@@ -1,10 +1,13 @@
 package services
 
 import (
+	"log"
+	"slices"
 	"sync"
 
 	"riposte-backend/src/types"
 	"riposte-backend/src/types/errors"
+	"riposte-backend/src/utils"
 
 	"github.com/gofiber/websocket/v2"
 	"github.com/google/uuid"
@@ -79,7 +82,7 @@ func LeaveRoom(roomID string, playerId string) error {
 }
 
 // BroadcastToRoom sends a message to all players in a room, except specified players
-func BroadcastToRoom(roomID string, event string, payload any, exceptedPlayerIDs ...string) error {
+func BroadcastToRoom[T any](roomID string, event string, payload *T, exceptedPlayerIDs ...string) error {
 	mu.Lock()
 	room, exists := rooms[roomID]
 	mu.Unlock()
@@ -88,7 +91,23 @@ func BroadcastToRoom(roomID string, event string, payload any, exceptedPlayerIDs
 		return errors.NewGameError(errors.ErrRoomNotFound, "room not found")
 	}
 
-	room.Broadcast(event, payload, exceptedPlayerIDs...)
+	room.DoLocked(func() {
+		if len(room.Players) == 0 {
+			log.Println("No players in room to broadcast message")
+			return
+		}
+
+		for _, player := range room.Players {
+			if player.Conn != nil && (len(exceptedPlayerIDs) == 0 || !slices.Contains(exceptedPlayerIDs, player.ID)) {
+				err := utils.SendBroadcast(player.Conn, event, payload)
+				if err != nil {
+					log.Printf("Error sending message to player %s: %v", player.ID, err)
+				}
+			} else {
+				log.Printf("Player %s has no connection", player.ID)
+			}
+		}
+	})
 
 	return nil
 }
