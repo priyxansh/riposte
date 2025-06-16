@@ -30,7 +30,7 @@ func SocketHandler(c *websocket.Conn) {
 				log.Printf("Player %s successfully removed from room %s\n", playerID, joinedRoomID)
 
 				// Notify other players in the room
-				broadcastPayload := &eventpayloads.PlayerLeftPayload{
+				broadcastPayload := &eventpayloads.PlayerLeftResponse{
 					RoomID:   joinedRoomID,
 					PlayerID: playerID,
 				}
@@ -111,7 +111,7 @@ func SocketHandler(c *websocket.Conn) {
 			utils.SendResponse(c, events.JoinRoom, &eventpayloads.JoinRoomResponse{}, nil)
 
 			// Notify other players in the room
-			broadcastPayload := &eventpayloads.PlayerJoinedPayload{
+			broadcastPayload := &eventpayloads.PlayerJoinedResponse{
 				RoomID:   joinedRoomID,
 				JoinerID: playerID,
 			}
@@ -146,7 +146,7 @@ func SocketHandler(c *websocket.Conn) {
 			utils.SendResponse(c, events.LeaveRoom, &eventpayloads.LeaveRoomResponse{}, nil)
 
 			// Notify other players in the room
-			broadcastPayload := &eventpayloads.PlayerLeftPayload{
+			broadcastPayload := &eventpayloads.PlayerLeftResponse{
 				RoomID:   payload.RoomID,
 				PlayerID: playerID,
 			}

@@ -27,12 +27,12 @@ type RoomStateResponse struct {
 	PlayerIDs []string `json:"playerIds"`
 }
 
-type PlayerLeftPayload struct {
+type PlayerLeftResponse struct {
 	RoomID   string `json:"roomId"`
 	PlayerID string `json:"playerId"`
 }
 
-type PlayerJoinedPayload struct {
+type PlayerJoinedResponse struct {
 	RoomID   string `json:"roomId"`
 	JoinerID string `json:"joinerId"`
 }
