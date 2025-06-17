@@ -13,6 +13,12 @@ class SocketManager {
 		roomMembers: [] as string[]
 	});
 
+	public clearRoomState() {
+		this.roomState.roomId = null;
+		this.roomState.roomName = null;
+		this.roomState.roomMembers = [];
+	}
+
 	public get socket() {
 		return this.state.socket;
 	}

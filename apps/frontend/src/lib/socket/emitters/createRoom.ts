@@ -9,7 +9,7 @@ export const createRoom = ({ roomName, mode, hostId }: CreateRoomPayload) => {
 	}
 
 	// Clear previous roomState
-	socketManager.roomState = { roomId: null, roomName: null, roomMembers: [] };
+	socketManager.clearRoomState();
 
 	// Emit the createRoom event with the necessary payload
 	socketManager.sendMessage(
