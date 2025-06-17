@@ -1,36 +1,50 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
+	import { joinRoom } from '$lib/socket/emitters/joinRoom';
+	import { joinRoomHandler } from '$lib/socket/handlers/joinRoomHandler';
 	import { socketManager } from '$lib/stores/socket.svelte';
+	import type { ResponsePayload } from '../../../types/event-payloads/payload-map';
 
 	let roomId = $state('');
 	let isSubmitting = $state(false);
 
 	function handleSubmit() {
-		if (isSubmitting) return; // Prevent multiple submissions
+		if (isSubmitting || !roomId.trim()) return;
 
 		isSubmitting = true;
 
-		if (!roomId.trim()) {
-			console.log('Room ID is required');
-			isSubmitting = false;
-			// TODO: Add proper validation/error handling
-			return;
-		}
-
-		// Clear previous roomState
-		socketManager.roomState = { roomId: null, roomName: null, roomMembers: [] };
-
-		socketManager.sendMessage(
-			JSON.stringify({
-				event: 'join_room',
-				payload: { roomId: roomId.trim(), joinerId: crypto.randomUUID() }
-			})
-		);
-
-		isSubmitting = false;
+		joinRoom({
+			roomId: roomId.trim(),
+			playerId: crypto.randomUUID()
+		});
 	}
+
+	const onJoinRoomDone = ({ success, error }: ResponsePayload['join_room']) => {
+		isSubmitting = false;
+
+		if (success) {
+			socketManager.roomState.roomId = roomId;
+
+			goto(`/lobby/${roomId}`);
+		} else {
+			console.error('Failed to join room:', error);
+		}
+	};
+
+	const handleJoinRoom = (payload: ResponsePayload['join_room']) => {
+		joinRoomHandler(payload, onJoinRoomDone);
+	};
+
+	$effect(() => {
+		socketManager.addMessageListener('join_room', handleJoinRoom);
+
+		return () => {
+			socketManager.removeMessageListener('join_room', handleJoinRoom);
+		};
+	});
 </script>
 
 <div class="space-y-6">
@@ -47,7 +61,7 @@
 	</div>
 
 	<!-- Action Buttons -->
-	<div class="flex flex-col space-y-3 pt-4 sm:flex-row sm:space-y-0 sm:space-x-3">
+	<div class="flex flex-col space-y-3 pt-4 sm:flex-row sm:space-x-3 sm:space-y-0">
 		<Button
 			onclick={handleSubmit}
 			disabled={isSubmitting}

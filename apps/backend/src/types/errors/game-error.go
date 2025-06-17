@@ -17,3 +17,14 @@ func NewGameError(t ErrorType, msg string) *GameError {
 		Message: msg,
 	}
 }
+
+func WrapError(err error) *GameError {
+	if ge, ok := err.(*GameError); ok {
+		return ge
+	}
+
+	return &GameError{
+		Type:    UnknownError,
+		Message: err.Error(),
+	}
+}

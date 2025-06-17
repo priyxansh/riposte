@@ -1,7 +1,6 @@
 package types
 
 import (
-	"log"
 	"riposte-backend/src/types/errors"
 	"slices"
 	"sync"
@@ -52,26 +51,8 @@ func (r *Room) ConnCount() int {
 	return len(r.Players)
 }
 
-func (r *Room) Broadcast(event string, payload any, exceptedPlayerIDs ...string) {
+func (r *Room) DoLocked(fn func()) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-
-	if r.ConnCount() == 0 {
-		log.Println("No players in room to broadcast message")
-		return
-	}
-
-	for _, player := range r.Players {
-		if player.Conn != nil && (len(exceptedPlayerIDs) == 0 || !slices.Contains(exceptedPlayerIDs, player.ID)) {
-			err := player.Conn.WriteJSON(OutgoingMessage{
-				Event: event,
-				Data:  payload,
-			})
-			if err != nil {
-				log.Printf("Error sending message to player %s: %v", player.ID, err)
-			}
-		} else {
-			log.Printf("Player %s has no connection", player.ID)
-		}
-	}
+	fn()
 }

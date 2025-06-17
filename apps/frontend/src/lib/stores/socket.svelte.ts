@@ -1,6 +1,29 @@
-import { createRoomHandler } from '$lib/socket-handlers/createRoom';
+import type { EventName } from '$lib/constants/events';
+import type { EventCallback } from '../../types/socket';
 
 class SocketManager {
+	private listeners: Map<EventName, Set<EventCallback>> = new Map();
+
+	public addMessageListener(event: EventName, callback: EventCallback) {
+		if (!this.listeners.has(event)) {
+			this.listeners.set(event, new Set());
+		}
+
+		this.listeners.get(event)?.add(callback);
+	}
+
+	public removeMessageListener(event: EventName, callback: EventCallback) {
+		this.listeners.get(event)?.delete(callback);
+
+		if (this.listeners.get(event)?.size === 0) {
+			this.listeners.delete(event);
+		}
+	}
+
+	private dispatchEvent(event: EventName, payload: any) {
+		this.listeners.get(event)?.forEach((cb) => cb(payload));
+	}
+
 	private state = $state({
 		socket: null as WebSocket | null,
 		connectionState: 'disconnected' as 'connected' | 'disconnected' | 'error',
@@ -12,6 +35,12 @@ class SocketManager {
 		roomName: null as string | null,
 		roomMembers: [] as string[]
 	});
+
+	public clearRoomState() {
+		this.roomState.roomId = null;
+		this.roomState.roomName = null;
+		this.roomState.roomMembers = [];
+	}
 
 	public get socket() {
 		return this.state.socket;
@@ -51,18 +80,10 @@ class SocketManager {
 
 		this.state.socket.onmessage = (ev) => {
 			try {
-				const data = JSON.parse(ev.data);
+				const { event, payload } = JSON.parse(ev.data);
+				if (typeof event !== 'string' || !payload) return;
 
-				const event = data.event;
-				const payload = data.payload;
-
-				switch (event) {
-					case 'create_room':
-						createRoomHandler(payload);
-						break;
-					default:
-						console.warn(`Unhandled WebSocket event: ${event}`, payload, data);
-				}
+				this.dispatchEvent(event as EventName, payload);
 			} catch (error) {
 				console.error('Error handling WebSocket message:', error);
 			}

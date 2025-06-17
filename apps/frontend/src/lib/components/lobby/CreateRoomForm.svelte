@@ -6,48 +6,60 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { socketManager } from '$lib/stores/socket.svelte';
 	import { goto } from '$app/navigation';
+	import { createRoom } from '$lib/socket/emitters/createRoom';
+	import { createRoomHandler } from '$lib/socket/handlers/createRoomHandler';
+	import { EVENTS } from '$lib/constants/events';
+	import type { GameError } from '../../../types/game-error';
+	import type { BaseResponse, CreateRoomResponse } from '../../../types/event-payloads/server';
 
 	let roomName = $state('');
-	let selectedMode = $state({ value: '1v1', label: '1v1 - Duel' });
 
 	let isSubmitting = $state(false);
 
-	const gameModes = [
+	const gameModes: {
+		value: '1v1' | '2v2';
+		label: string;
+	}[] = [
 		{ value: '1v1', label: '1v1 - Duel' },
 		{ value: '2v2', label: '2v2 - Team Match' }
 	];
 
+	let selectedMode = $state(gameModes[0]);
+
 	function handleSubmit() {
-		if (isSubmitting) return; // Prevent multiple submissions
+		if (isSubmitting || !roomName.trim()) return;
 
 		isSubmitting = true;
 
-		// Clear previous roomState
-		socketManager.roomState = { roomId: null, roomName: null, roomMembers: [] };
-
-		if (!roomName.trim()) {
-			// TODO: Add proper validation/error handling
-			return;
-		}
-
-		socketManager.sendMessage(
-			JSON.stringify({
-				event: 'create_room',
-				payload: {
-					roomName: roomName.trim(),
-					mode: selectedMode.value,
-					hostId: crypto.randomUUID()
-				}
-			})
-		);
+		createRoom({
+			roomName: roomName.trim(),
+			mode: selectedMode.value,
+			hostId: crypto.randomUUID()
+		});
 	}
 
-	$effect(() => {
-		if (socketManager.roomState.roomId && isSubmitting) {
-			isSubmitting = false;
+	const onCreateRoomDone = (
+		result: { success: true; roomId: string } | { success: false; error: GameError }
+	) => {
+		isSubmitting = false;
 
-			goto(`/lobby/${socketManager.roomState.roomId}`);
+		if (result.success) {
+			goto(`/lobby/${result.roomId}`);
+		} else {
+			console.error('Failed to create room');
 		}
+	};
+
+	const handleCreateRoom = (payload: BaseResponse<CreateRoomResponse>) => {
+		createRoomHandler(payload, onCreateRoomDone);
+	};
+
+	$effect(() => {
+		socketManager.addMessageListener(EVENTS.CREATE_ROOM, handleCreateRoom);
+
+		return () => {
+			socketManager.removeMessageListener(EVENTS.CREATE_ROOM, handleCreateRoom);
+		};
 	});
 </script>
 
@@ -90,7 +102,7 @@
 	</div>
 
 	<!-- Action Buttons -->
-	<div class="flex flex-col space-y-3 pt-4 sm:flex-row sm:space-y-0 sm:space-x-3">
+	<div class="flex flex-col space-y-3 pt-4 sm:flex-row sm:space-x-3 sm:space-y-0">
 		<Button
 			onclick={handleSubmit}
 			disabled={!roomName.trim()}
