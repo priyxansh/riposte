@@ -6,6 +6,11 @@ export type BaseResponse<T> = {
 	error?: GameError;
 };
 
+export type BaseBroadcastResponse<T> = {
+	isBroadcast: true;
+	data: T;
+};
+
 export type CreateRoomResponse = {
 	roomId: string;
 };

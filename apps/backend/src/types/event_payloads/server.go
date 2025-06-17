@@ -9,7 +9,8 @@ type BaseResponse[T any] struct {
 }
 
 type BaseBroadcastResponse[T any] struct {
-	Data *T `json:"data"`
+	Data        *T   `json:"data"`
+	IsBroadcast bool `json:"isBroadcast"`
 }
 
 type CreateRoomResponse struct {

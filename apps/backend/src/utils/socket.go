@@ -25,7 +25,8 @@ func SendBroadcast[T any](conn *websocket.Conn, event string, data *T) error {
 	response := types.BroadcastResponse[T]{
 		Event: event,
 		Payload: eventpayloads.BaseBroadcastResponse[T]{
-			Data: data,
+			Data:        data,
+			IsBroadcast: true,
 		},
 	}
 
