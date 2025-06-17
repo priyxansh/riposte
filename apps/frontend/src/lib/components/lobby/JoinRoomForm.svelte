@@ -2,7 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import { socketManager } from '$lib/stores/socket.svelte';
+	import { joinRoom } from '$lib/socket/emitters/joinRoom';
 
 	let roomId = $state('');
 	let isSubmitting = $state(false);
@@ -19,15 +19,10 @@
 			return;
 		}
 
-		// Clear previous roomState
-		socketManager.roomState = { roomId: null, roomName: null, roomMembers: [] };
-
-		socketManager.sendMessage(
-			JSON.stringify({
-				event: 'join_room',
-				payload: { roomId: roomId.trim(), joinerId: crypto.randomUUID() }
-			})
-		);
+		joinRoom({
+			roomId: roomId.trim(),
+			playerId: crypto.randomUUID()
+		});
 
 		isSubmitting = false;
 	}
@@ -47,7 +42,7 @@
 	</div>
 
 	<!-- Action Buttons -->
-	<div class="flex flex-col space-y-3 pt-4 sm:flex-row sm:space-y-0 sm:space-x-3">
+	<div class="flex flex-col space-y-3 pt-4 sm:flex-row sm:space-x-3 sm:space-y-0">
 		<Button
 			onclick={handleSubmit}
 			disabled={isSubmitting}
