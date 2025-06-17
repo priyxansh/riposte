@@ -98,10 +98,12 @@ func BroadcastToRoom[T any](roomID string, event string, payload *T, exceptedPla
 		}
 
 		for _, player := range room.Players {
-			if player.Conn != nil && (len(exceptedPlayerIDs) == 0 || !slices.Contains(exceptedPlayerIDs, player.ID)) {
-				err := utils.SendBroadcast(player.Conn, event, payload)
-				if err != nil {
-					log.Printf("Error sending message to player %s: %v", player.ID, err)
+			if player.Conn != nil {
+				if len(exceptedPlayerIDs) == 0 || !slices.Contains(exceptedPlayerIDs, player.ID) {
+					err := utils.SendBroadcast(player.Conn, event, payload)
+					if err != nil {
+						log.Printf("Error sending message to player %s: %v", player.ID, err)
+					}
 				}
 			} else {
 				log.Printf("Player %s has no connection", player.ID)
