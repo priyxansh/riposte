@@ -7,33 +7,29 @@
 	import { socketManager } from '$lib/stores/socket.svelte';
 	import { goto } from '$app/navigation';
 	import { createRoom } from '$lib/socket/emitters/createRoom';
+	import { createRoomHandler } from '$lib/socket/handlers/createRoomHandler';
+	import { EVENTS } from '$lib/constants/events';
+	import type { GameError } from '../../../types/game-error';
+	import type { BaseResponse, CreateRoomResponse } from '../../../types/event-payloads/server';
 
 	let roomName = $state('');
-
-	let selectedMode: {
-		value: '1v1' | '2v2';
-		label: string;
-	} = $state({ value: '1v1', label: '1v1 - Duel' });
 
 	let isSubmitting = $state(false);
 
 	const gameModes: {
 		value: '1v1' | '2v2';
 		label: string;
-	}[] = $state([
+	}[] = [
 		{ value: '1v1', label: '1v1 - Duel' },
 		{ value: '2v2', label: '2v2 - Team Match' }
-	]);
+	];
+
+	let selectedMode = $state(gameModes[0]);
 
 	function handleSubmit() {
-		if (isSubmitting) return; // Prevent multiple submissions
+		if (isSubmitting || !roomName.trim()) return;
 
 		isSubmitting = true;
-
-		if (!roomName.trim()) {
-			// TODO: Add proper validation/error handling
-			return;
-		}
 
 		createRoom({
 			roomName: roomName.trim(),
@@ -42,12 +38,28 @@
 		});
 	}
 
-	$effect(() => {
-		if (socketManager.roomState.roomId && isSubmitting) {
-			isSubmitting = false;
+	const onCreateRoomDone = (
+		result: { success: true; roomId: string } | { success: false; error: GameError }
+	) => {
+		isSubmitting = false;
 
-			goto(`/lobby/${socketManager.roomState.roomId}`);
+		if (result.success) {
+			goto(`/lobby/${result.roomId}`);
+		} else {
+			console.error('Failed to create room');
 		}
+	};
+
+	const handleCreateRoom = (payload: BaseResponse<CreateRoomResponse>) => {
+		createRoomHandler(payload, onCreateRoomDone);
+	};
+
+	$effect(() => {
+		socketManager.addMessageListener(EVENTS.CREATE_ROOM, handleCreateRoom);
+
+		return () => {
+			socketManager.removeMessageListener(EVENTS.CREATE_ROOM, handleCreateRoom);
+		};
 	});
 </script>
 
