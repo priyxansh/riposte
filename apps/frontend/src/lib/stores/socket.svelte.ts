@@ -1,4 +1,4 @@
-import { createRoomHandler } from '$lib/socket-handlers/createRoom';
+import { createRoomHandler } from '$lib/socket/handlers/createRoomHandler';
 
 class SocketManager {
 	private state = $state({
