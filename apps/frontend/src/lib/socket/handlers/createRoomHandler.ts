@@ -6,18 +6,19 @@ export const createRoomHandler = (
 	payload: BaseResponse<CreateRoomResponse>,
 	done?: (result: { success: true; roomId: string } | { success: false; error: GameError }) => void
 ) => {
-	if (!payload.success) {
+	if (!payload.success || !payload.data?.roomId) {
 		console.error('Failed to create room:', payload.error);
 
 		if (done) {
 			done({ success: false, error: payload.error! });
 		}
+
 		return;
 	}
 
 	const roomId = payload.data!.roomId;
 
-	socketManager.roomState.roomId = roomId || null;
+	socketManager.roomState.roomId = roomId;
 
 	console.log(`Room created with ID: ${roomId}`);
 

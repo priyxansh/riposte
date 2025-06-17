@@ -1,31 +1,50 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { joinRoom } from '$lib/socket/emitters/joinRoom';
+	import { joinRoomHandler } from '$lib/socket/handlers/joinRoomHandler';
+	import { socketManager } from '$lib/stores/socket.svelte';
+	import type { ResponsePayload } from '../../../types/event-payloads/payload-map';
 
 	let roomId = $state('');
 	let isSubmitting = $state(false);
 
 	function handleSubmit() {
-		if (isSubmitting) return; // Prevent multiple submissions
+		if (isSubmitting || !roomId.trim()) return;
 
 		isSubmitting = true;
-
-		if (!roomId.trim()) {
-			console.log('Room ID is required');
-			isSubmitting = false;
-			// TODO: Add proper validation/error handling
-			return;
-		}
 
 		joinRoom({
 			roomId: roomId.trim(),
 			playerId: crypto.randomUUID()
 		});
-
-		isSubmitting = false;
 	}
+
+	const onJoinRoomDone = ({ success, error }: ResponsePayload['join_room']) => {
+		isSubmitting = false;
+
+		if (success) {
+			socketManager.roomState.roomId = roomId;
+
+			goto(`/lobby/${roomId}`);
+		} else {
+			console.error('Failed to join room:', error);
+		}
+	};
+
+	const handleJoinRoom = (payload: ResponsePayload['join_room']) => {
+		joinRoomHandler(payload, onJoinRoomDone);
+	};
+
+	$effect(() => {
+		socketManager.addMessageListener('join_room', handleJoinRoom);
+
+		return () => {
+			socketManager.removeMessageListener('join_room', handleJoinRoom);
+		};
+	});
 </script>
 
 <div class="space-y-6">
