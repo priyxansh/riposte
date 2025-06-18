@@ -1,4 +1,4 @@
-package types
+package gametypes
 
 import (
 	"riposte-backend/src/types/errors"
@@ -15,22 +15,22 @@ type Room struct {
 	mu      sync.Mutex
 }
 
-func (r *Room) AddPlayer(player *Player) error {
+func (r *Room) AddPlayer(player *Player) (*Room, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if (r.Mode == "1v1" && len(r.Players) >= 2) || (r.Mode == "2v2" && len(r.Players) >= 4) {
-		return errors.NewGameError(errors.ErrRoomFull, "room is full")
+		return nil, errors.NewGameError(errors.ErrRoomFull, "room is full")
 	}
 
 	for _, p := range r.Players {
 		if p.ID == player.ID {
-			return errors.NewGameError(errors.ErrAlreadyInRoom, "player already in room")
+			return nil, errors.NewGameError(errors.ErrAlreadyInRoom, "player already in room")
 		}
 	}
 
 	r.Players = append(r.Players, player)
-	return nil
+	return r, nil
 }
 
 func (r *Room) RemovePlayerByID(playerID string) {

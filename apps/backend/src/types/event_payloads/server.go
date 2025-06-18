@@ -1,6 +1,9 @@
 package eventpayloads
 
-import "riposte-backend/src/types/errors"
+import (
+	"riposte-backend/src/types/errors"
+	gametypes "riposte-backend/src/types/game_types"
+)
 
 type BaseResponse[T any] struct {
 	Success bool              `json:"success"`
@@ -17,7 +20,12 @@ type CreateRoomResponse struct {
 	RoomID string `json:"roomId"`
 }
 
-type JoinRoomResponse struct{}
+type JoinRoomResponse struct {
+	RoomID  string                      `json:"roomId"`
+	HostID  string                      `json:"hostId"`
+	Mode    string                      `json:"mode"`
+	Players []*gametypes.PlayerMetadata `json:"players"`
+}
 
 type LeaveRoomResponse struct{}
 

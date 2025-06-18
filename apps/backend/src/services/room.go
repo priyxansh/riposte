@@ -5,8 +5,8 @@ import (
 	"slices"
 	"sync"
 
-	"riposte-backend/src/types"
 	"riposte-backend/src/types/errors"
+	gametypes "riposte-backend/src/types/game_types"
 	"riposte-backend/src/utils"
 
 	"github.com/gofiber/websocket/v2"
@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	rooms = make(map[string]*types.Room)
+	rooms = make(map[string]*gametypes.Room)
 	mu    sync.Mutex
 )
 
@@ -29,10 +29,10 @@ func CreateRoom(roomName, mode, hostID string, hostConn *websocket.Conn) (string
 
 	roomID := uuid.NewString()
 
-	rooms[roomID] = &types.Room{
+	rooms[roomID] = &gametypes.Room{
 		Name:   roomName,
 		RoomID: roomID,
-		Players: []*types.Player{
+		Players: []*gametypes.Player{
 			{ID: hostID, Conn: hostConn},
 		},
 		Mode:   mode,
@@ -43,16 +43,16 @@ func CreateRoom(roomName, mode, hostID string, hostConn *websocket.Conn) (string
 }
 
 // JoinRoom adds a player with an ID and connection to a room
-func JoinRoom(roomID string, playerID string, conn *websocket.Conn) error {
+func JoinRoom(roomID string, playerID string, conn *websocket.Conn) (*gametypes.Room, error) {
 	mu.Lock()
 	room, exists := rooms[roomID]
 	mu.Unlock()
 
 	if !exists {
-		return errors.NewGameError(errors.ErrRoomNotFound, "room not found")
+		return nil, errors.NewGameError(errors.ErrRoomNotFound, "room not found")
 	}
 
-	player := &types.Player{
+	player := &gametypes.Player{
 		ID:   playerID,
 		Conn: conn,
 	}
@@ -115,7 +115,7 @@ func BroadcastToRoom[T any](roomID string, event string, payload *T, exceptedPla
 }
 
 // GetRoom returns a pointer to a room if it exists
-func GetRoom(roomID string) (*types.Room, error) {
+func GetRoom(roomID string) (*gametypes.Room, error) {
 	mu.Lock()
 	defer mu.Unlock()
 

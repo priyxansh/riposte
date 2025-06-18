@@ -9,6 +9,7 @@ import (
 	"riposte-backend/src/types"
 	"riposte-backend/src/types/errors"
 	eventpayloads "riposte-backend/src/types/event_payloads"
+	gametypes "riposte-backend/src/types/game_types"
 	"riposte-backend/src/utils"
 
 	"github.com/gofiber/websocket/v2"
@@ -95,7 +96,7 @@ func SocketHandler(c *websocket.Conn) {
 
 			log.Printf("Joining room: %+v\n", payload)
 
-			err := services.JoinRoom(payload.RoomID, payload.JoinerID, c)
+			room, err := services.JoinRoom(payload.RoomID, payload.JoinerID, c)
 
 			if err != nil {
 				log.Println("join room error:", err)
@@ -108,7 +109,20 @@ func SocketHandler(c *websocket.Conn) {
 			joinedRoomID = payload.RoomID
 			playerID = payload.JoinerID
 
-			utils.SendResponse(c, events.JoinRoom, &eventpayloads.JoinRoomResponse{}, nil)
+			playersMetadata := make([]*gametypes.PlayerMetadata, len(room.Players))
+
+			for i, player := range room.Players {
+				playersMetadata[i] = &gametypes.PlayerMetadata{
+					ID: player.ID,
+				}
+			}
+
+			utils.SendResponse(c, events.JoinRoom, &eventpayloads.JoinRoomResponse{
+				RoomID:  joinedRoomID,
+				HostID:  room.HostID,
+				Mode:    room.Mode,
+				Players: playersMetadata,
+			}, nil)
 
 			// Notify other players in the room
 			broadcastPayload := &eventpayloads.PlayerJoinedResponse{
