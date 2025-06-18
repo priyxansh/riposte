@@ -9,7 +9,6 @@
 	import { createRoom } from '$lib/socket/emitters/createRoom';
 	import { createRoomHandler } from '$lib/socket/handlers/createRoomHandler';
 	import { EVENTS } from '$lib/constants/events';
-	import type { GameError } from '../../../types/game-error';
 	import type { BaseResponse, CreateRoomResponse } from '../../../types/event-payloads/server';
 
 	let roomName = $state('');
@@ -38,15 +37,11 @@
 		});
 	}
 
-	const onCreateRoomDone = (
-		result: { success: true; roomId: string } | { success: false; error: GameError }
-	) => {
+	const onCreateRoomDone = ({ success, data }: BaseResponse<CreateRoomResponse>) => {
 		isSubmitting = false;
 
-		if (result.success) {
-			goto(`/lobby/${result.roomId}`);
-		} else {
-			console.error('Failed to create room');
+		if (success && data?.roomId) {
+			goto(`/lobby/${data.roomId}`);
 		}
 	};
 

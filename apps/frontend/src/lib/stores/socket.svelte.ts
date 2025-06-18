@@ -1,4 +1,5 @@
 import type { EventName } from '$lib/constants/events';
+import type { Room } from '../../types/room';
 import type { EventCallback } from '../../types/socket';
 
 class SocketManager {
@@ -30,16 +31,10 @@ class SocketManager {
 		error: null as Error | null
 	});
 
-	public roomState = $state({
-		roomId: null as string | null,
-		roomName: null as string | null,
-		roomMembers: [] as string[]
-	});
+	public roomState = $state<Room | null>();
 
 	public clearRoomState() {
-		this.roomState.roomId = null;
-		this.roomState.roomName = null;
-		this.roomState.roomMembers = [];
+		this.roomState = null;
 	}
 
 	public get socket() {

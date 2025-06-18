@@ -22,15 +22,11 @@
 		});
 	}
 
-	const onJoinRoomDone = ({ success, error }: ResponsePayload['join_room']) => {
+	const onJoinRoomDone = ({ success, data }: ResponsePayload['join_room']) => {
 		isSubmitting = false;
 
-		if (success) {
-			socketManager.roomState.roomId = roomId;
-
-			goto(`/lobby/${roomId}`);
-		} else {
-			console.error('Failed to join room:', error);
+		if (success && data?.roomId) {
+			goto(`/lobby/${data.roomId}`);
 		}
 	};
 
