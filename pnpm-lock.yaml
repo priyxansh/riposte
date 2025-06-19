@@ -15,6 +15,10 @@ importers:
   apps/backend: {}
 
   apps/frontend:
+    dependencies:
+      lucide-svelte:
+        specifier: ^0.517.0
+        version: 0.517.0(svelte@5.33.14)
     devDependencies:
       '@eslint/compat':
         specifier: ^1.2.5
@@ -1080,6 +1084,11 @@ packages:
 
   lodash.merge@4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
+
+  lucide-svelte@0.517.0:
+    resolution: {integrity: sha512-CtnL3WSxfY8A8wAplmKO1ZdVBHIx0TLHErlgyw5zZge6ayO67MhtoE+RzTvgvDEaugqX8CvQTFjAe48m+dCYZg==}
+    peerDependencies:
+      svelte: ^3 || ^4 || ^5.0.0-next.42
 
   magic-string@0.30.17:
     resolution: {integrity: sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA==}
@@ -2420,6 +2429,10 @@ snapshots:
       p-locate: 5.0.0
 
   lodash.merge@4.6.2: {}
+
+  lucide-svelte@0.517.0(svelte@5.33.14):
+    dependencies:
+      svelte: 5.33.14
 
   magic-string@0.30.17:
     dependencies:
