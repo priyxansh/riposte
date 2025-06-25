@@ -11,9 +11,13 @@
 		if (isSubmitting || !playerName.trim()) return;
 
 		isSubmitting = true;
-		
+
 		try {
+			const playerId = `${playerName.trim().toLowerCase().replace(/\s+/g, '-')}-${crypto.randomUUID().slice(0, 8)}`;
+
 			localStorage.setItem('playerName', playerName.trim());
+			localStorage.setItem('playerId', playerId);
+
 			goto('/lobby');
 		} catch (error) {
 			console.error('Failed to save player name:', error);

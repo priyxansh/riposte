@@ -6,8 +6,10 @@
 
 	onMount(() => {
 		const playerName = localStorage.getItem('playerName');
+		const playerId = localStorage.getItem('playerId');
 
-		if (playerName) {
+		if (playerId && playerName) {
+			// If player is already set up, redirect to the lobby
 			goto('/lobby');
 		}
 	});

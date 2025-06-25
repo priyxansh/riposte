@@ -9,8 +9,9 @@
 		if (!browser) return; // Ensure this runs only in the browser
 
 		const playerName = localStorage.getItem('playerName');
+		const playerId = localStorage.getItem('playerId');
 
-		if (!playerName) {
+		if (!playerName || !playerId) {
 			goto('/setup-player');
 		}
 	});
