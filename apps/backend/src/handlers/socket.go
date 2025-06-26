@@ -71,7 +71,7 @@ func SocketHandler(c *websocket.Conn) {
 
 			log.Printf("Creating room: %+v\n", payload)
 
-			roomID, err := services.CreateRoom(payload, c)
+			room, err := services.CreateRoom(payload, c)
 
 			if err != nil {
 				log.Println("create room error:", err)
@@ -81,10 +81,13 @@ func SocketHandler(c *websocket.Conn) {
 				continue
 			}
 
-			joinedRoomID = roomID
+			joinedRoomID = room.RoomID
 			playerID = payload.HostID
 
-			utils.SendResponse(c, events.CreateRoom, &eventpayloads.CreateRoomResponse{RoomID: roomID}, nil)
+			utils.SendResponse(c, events.CreateRoom, &eventpayloads.CreateRoomResponse{
+				RoomID:   room.RoomID,
+				RoomName: room.Name,
+			}, nil)
 
 		case events.JoinRoom:
 			var payload eventpayloads.JoinRoomPayload
@@ -119,15 +122,16 @@ func SocketHandler(c *websocket.Conn) {
 			}
 
 			utils.SendResponse(c, events.JoinRoom, &eventpayloads.JoinRoomResponse{
-				RoomID:  joinedRoomID,
-				HostID:  room.HostID,
-				Mode:    room.Mode,
-				Players: playerMetadataList,
+				RoomID:   room.RoomID,
+				RoomName: room.Name,
+				HostID:   room.HostID,
+				Mode:     room.Mode,
+				Players:  playerMetadataList,
 			}, nil)
 
 			// Notify other players in the room
 			broadcastPayload := &eventpayloads.PlayerJoinedResponse{
-				RoomID:     joinedRoomID,
+				RoomID:     payload.RoomID,
 				JoinerID:   playerID,
 				JoinerName: payload.JoinerName,
 			}
@@ -199,10 +203,11 @@ func SocketHandler(c *websocket.Conn) {
 			}
 
 			utils.SendResponse(c, events.RoomState, &eventpayloads.RoomStateResponse{
-				RoomID:  room.RoomID,
-				HostID:  room.HostID,
-				Mode:    room.Mode,
-				Players: playerMetadataList,
+				RoomID:   room.RoomID,
+				RoomName: room.Name,
+				HostID:   room.HostID,
+				Mode:     room.Mode,
+				Players:  playerMetadataList,
 			}, nil)
 
 		default:

@@ -20,7 +20,7 @@ var (
 )
 
 // CreateRoom generates a roomID and creates a room with the host as the first player
-func CreateRoom(payload eventpayloads.CreateRoomPayload, hostConn *websocket.Conn) (string, error) {
+func CreateRoom(payload eventpayloads.CreateRoomPayload, hostConn *websocket.Conn) (*gametypes.Room, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -30,7 +30,7 @@ func CreateRoom(payload eventpayloads.CreateRoomPayload, hostConn *websocket.Con
 	hostName := payload.HostName
 
 	if mode != "1v1" && mode != "2v2" {
-		return "", errors.NewGameError(errors.ErrInvalidMode, "invalid game mode")
+		return nil, errors.NewGameError(errors.ErrInvalidMode, "invalid game mode")
 	}
 
 	roomID := uuid.NewString()
@@ -53,7 +53,7 @@ func CreateRoom(payload eventpayloads.CreateRoomPayload, hostConn *websocket.Con
 		HostID:  hostID,
 	}
 
-	return roomID, nil
+	return rooms[roomID], nil
 }
 
 // JoinRoom adds a player with an ID and connection to a room

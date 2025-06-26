@@ -17,23 +17,26 @@ type BaseBroadcastResponse[T any] struct {
 }
 
 type CreateRoomResponse struct {
-	RoomID string `json:"roomId"`
+	RoomID   string `json:"roomId"`
+	RoomName string `json:"roomName"`
 }
 
 type JoinRoomResponse struct {
-	RoomID  string                      `json:"roomId"`
-	HostID  string                      `json:"hostId"`
-	Mode    string                      `json:"mode"`
-	Players []*gametypes.PlayerMetadata `json:"players"`
+	RoomID   string                      `json:"roomId"`
+	RoomName string                      `json:"roomName"`
+	HostID   string                      `json:"hostId"`
+	Mode     string                      `json:"mode"`
+	Players  []*gametypes.PlayerMetadata `json:"players"`
 }
 
 type LeaveRoomResponse struct{}
 
 type RoomStateResponse struct {
-	RoomID  string                      `json:"roomId"`
-	HostID  string                      `json:"hostId"`
-	Mode    string                      `json:"mode"`
-	Players []*gametypes.PlayerMetadata `json:"players"`
+	RoomID   string                      `json:"roomId"`
+	RoomName string                      `json:"roomName"`
+	HostID   string                      `json:"hostId"`
+	Mode     string                      `json:"mode"`
+	Players  []*gametypes.PlayerMetadata `json:"players"`
 }
 
 type PlayerLeftResponse struct {
