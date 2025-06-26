@@ -24,7 +24,7 @@ func (r *Room) AddPlayer(player *Player) (*Room, error) {
 	}
 
 	for _, p := range r.Players {
-		if p.ID == player.ID {
+		if p.Metadata.ID == player.Metadata.ID {
 			return nil, errors.NewGameError(errors.ErrAlreadyInRoom, "player already in room")
 		}
 	}
@@ -33,16 +33,21 @@ func (r *Room) AddPlayer(player *Player) (*Room, error) {
 	return r, nil
 }
 
-func (r *Room) RemovePlayerByID(playerID string) {
+func (r *Room) RemovePlayerByID(playerID string) *PlayerMetadata {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	var metadata *PlayerMetadata
+
 	for i, p := range r.Players {
-		if p.ID == playerID {
+		if p.Metadata.ID == playerID {
+			metadata = p.Metadata
 			r.Players = slices.Delete(r.Players, i, i+1)
 			break
 		}
 	}
+
+	return metadata
 }
 
 func (r *Room) ConnCount() int {

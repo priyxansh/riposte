@@ -4,11 +4,13 @@ type CreateRoomPayload struct {
 	RoomName string `json:"roomName"`
 	Mode     string `json:"mode"`
 	HostID   string `json:"hostId"`
+	HostName string `json:"hostName"`
 }
 
 type JoinRoomPayload struct {
-	RoomID   string `json:"roomId"`
-	JoinerID string `json:"joinerId"`
+	RoomID     string `json:"roomId"`
+	JoinerID   string `json:"joinerId"`
+	JoinerName string `json:"joinerName"`
 }
 
 type LeaveRoomPayload struct {
@@ -16,8 +18,5 @@ type LeaveRoomPayload struct {
 }
 
 type RoomStatePayload struct {
-	RoomID    string   `json:"roomId"`
-	Mode      string   `json:"mode"`
-	HostID    string   `json:"hostId"`
-	PlayerIDs []string `json:"playerIds"`
+	RoomID string `json:"roomId"`
 }

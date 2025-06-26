@@ -25,7 +25,7 @@ func SocketHandler(c *websocket.Conn) {
 		if joinedRoomID != "" && playerID != "" {
 			log.Printf("Removing player %s from room %s\n", playerID, joinedRoomID)
 
-			if err := services.LeaveRoom(joinedRoomID, playerID); err != nil {
+			if playerMetadata, err := services.LeaveRoom(joinedRoomID, playerID); err != nil {
 				log.Println("Error leaving room:", err)
 			} else {
 				log.Printf("Player %s successfully removed from room %s\n", playerID, joinedRoomID)
@@ -33,7 +33,7 @@ func SocketHandler(c *websocket.Conn) {
 				// Notify other players in the room
 				broadcastPayload := &eventpayloads.PlayerLeftResponse{
 					RoomID:   joinedRoomID,
-					PlayerID: playerID,
+					PlayerID: playerMetadata.ID,
 				}
 
 				if err := services.BroadcastToRoom(joinedRoomID, events.PlayerLeft, broadcastPayload, playerID); err != nil {
@@ -71,7 +71,7 @@ func SocketHandler(c *websocket.Conn) {
 
 			log.Printf("Creating room: %+v\n", payload)
 
-			roomID, err := services.CreateRoom(payload.RoomName, payload.Mode, payload.HostID, c)
+			roomID, err := services.CreateRoom(payload, c)
 
 			if err != nil {
 				log.Println("create room error:", err)
@@ -96,7 +96,7 @@ func SocketHandler(c *websocket.Conn) {
 
 			log.Printf("Joining room: %+v\n", payload)
 
-			room, err := services.JoinRoom(payload.RoomID, payload.JoinerID, c)
+			room, err := services.JoinRoom(payload, c)
 
 			if err != nil {
 				log.Println("join room error:", err)
@@ -109,11 +109,12 @@ func SocketHandler(c *websocket.Conn) {
 			joinedRoomID = payload.RoomID
 			playerID = payload.JoinerID
 
-			playersMetadata := make([]*gametypes.PlayerMetadata, len(room.Players))
+			playerMetadataList := make([]*gametypes.PlayerMetadata, len(room.Players))
 
 			for i, player := range room.Players {
-				playersMetadata[i] = &gametypes.PlayerMetadata{
-					ID: player.ID,
+				playerMetadataList[i] = &gametypes.PlayerMetadata{
+					ID:   player.Metadata.ID,
+					Name: player.Metadata.Name,
 				}
 			}
 
@@ -121,13 +122,14 @@ func SocketHandler(c *websocket.Conn) {
 				RoomID:  joinedRoomID,
 				HostID:  room.HostID,
 				Mode:    room.Mode,
-				Players: playersMetadata,
+				Players: playerMetadataList,
 			}, nil)
 
 			// Notify other players in the room
 			broadcastPayload := &eventpayloads.PlayerJoinedResponse{
-				RoomID:   joinedRoomID,
-				JoinerID: playerID,
+				RoomID:     joinedRoomID,
+				JoinerID:   playerID,
+				JoinerName: payload.JoinerName,
 			}
 
 			err = services.BroadcastToRoom(joinedRoomID, events.PlayerJoined, broadcastPayload, playerID)
@@ -146,7 +148,7 @@ func SocketHandler(c *websocket.Conn) {
 
 			log.Printf("Leaving room: %+v\n", payload)
 
-			err := services.LeaveRoom(payload.RoomID, playerID)
+			playerMetadata, err := services.LeaveRoom(payload.RoomID, playerID)
 
 			if err != nil {
 				log.Println("leave room error:", err)
@@ -161,8 +163,9 @@ func SocketHandler(c *websocket.Conn) {
 
 			// Notify other players in the room
 			broadcastPayload := &eventpayloads.PlayerLeftResponse{
-				RoomID:   payload.RoomID,
-				PlayerID: playerID,
+				RoomID:     payload.RoomID,
+				PlayerID:   playerMetadata.ID,
+				PlayerName: playerMetadata.Name,
 			}
 
 			err = services.BroadcastToRoom(payload.RoomID, events.PlayerLeft, broadcastPayload, playerID)
@@ -189,17 +192,17 @@ func SocketHandler(c *websocket.Conn) {
 				continue
 			}
 
-			playerIDs := make([]string, len(room.Players))
+			playerMetadataList := make([]*gametypes.PlayerMetadata, len(room.Players))
 
 			for i, player := range room.Players {
-				playerIDs[i] = player.ID
+				playerMetadataList[i] = player.Metadata
 			}
 
 			utils.SendResponse(c, events.RoomState, &eventpayloads.RoomStateResponse{
-				RoomID:    room.RoomID,
-				HostID:    room.HostID,
-				Mode:      room.Mode,
-				PlayerIDs: playerIDs,
+				RoomID:  room.RoomID,
+				HostID:  room.HostID,
+				Mode:    room.Mode,
+				Players: playerMetadataList,
 			}, nil)
 
 		default:

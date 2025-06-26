@@ -30,18 +30,20 @@ type JoinRoomResponse struct {
 type LeaveRoomResponse struct{}
 
 type RoomStateResponse struct {
-	RoomID    string   `json:"roomId"`
-	HostID    string   `json:"hostId"`
-	Mode      string   `json:"mode"`
-	PlayerIDs []string `json:"playerIds"`
+	RoomID  string                      `json:"roomId"`
+	HostID  string                      `json:"hostId"`
+	Mode    string                      `json:"mode"`
+	Players []*gametypes.PlayerMetadata `json:"players"`
 }
 
 type PlayerLeftResponse struct {
-	RoomID   string `json:"roomId"`
-	PlayerID string `json:"playerId"`
+	RoomID     string `json:"roomId"`
+	PlayerID   string `json:"playerId"`
+	PlayerName string `json:"playerName"`
 }
 
 type PlayerJoinedResponse struct {
-	RoomID   string `json:"roomId"`
-	JoinerID string `json:"joinerId"`
+	RoomID     string `json:"roomId"`
+	JoinerID   string `json:"joinerId"`
+	JoinerName string `json:"joinerName"`
 }
