@@ -5,7 +5,7 @@ export const joinRoomHandler = (
 	payload: ResponsePayload['join_room'],
 	done?: (result: ResponsePayload['join_room']) => void
 ) => {
-	if (!payload.success || !payload.data?.roomId) {
+	if (!payload.success || !payload.data) {
 		console.error('Failed to join room:', payload.error);
 
 		if (done) {
@@ -15,11 +15,14 @@ export const joinRoomHandler = (
 		return;
 	}
 
-	const { roomId, hostId, mode, players } = payload.data;
+	// Clear previous roomState
+	socketManager.clearRoomState();
+
+	const { roomId, hostId, mode, players, roomName } = payload.data;
 
 	socketManager.roomState = {
 		id: roomId,
-		name: `Room ${roomId}`, // Placeholder name, should be set based on actual room data
+		name: roomName,
 		hostId: hostId,
 		mode: mode,
 		players: players

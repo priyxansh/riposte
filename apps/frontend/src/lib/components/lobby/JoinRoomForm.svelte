@@ -14,11 +14,24 @@
 	function handleSubmit() {
 		if (isSubmitting || !roomId.trim()) return;
 
+		const playerName = localStorage.getItem('playerName');
+		const playerId = localStorage.getItem('playerId');
+
+		if (!playerName || !playerId) {
+			console.error('Player name or ID not found in localStorage', {
+				playerName,
+				playerId
+			});
+
+			return;
+		}
+
 		isSubmitting = true;
 
 		joinRoom({
 			roomId: roomId.trim(),
-			playerId: crypto.randomUUID()
+			playerId: playerId,
+			playerName: playerName.trim()
 		});
 	}
 

@@ -15,13 +15,20 @@ export const createRoomHandler = (
 		return;
 	}
 
+	// ToDo: Maybe add zod validation for payload.data
 	const roomId = payload.data!.roomId;
+	const roomName = payload.data!.roomName || `Room ${roomId}`; // Fallback to a default room name if not provided
+	const mode = payload.data!.mode || '1v1';
+	const hostId = payload.data!.hostId || '';
+
+	// Clear previous roomState
+	socketManager.clearRoomState();
 
 	socketManager.roomState = {
 		id: roomId,
-		name: `Room ${roomId}`,
-		hostId: '', // Placeholder value, should be set after room creation
-		mode: '1v1', // Placeholder value, should be set based on user selection
+		name: roomName,
+		hostId: hostId,
+		mode: mode,
 		players: []
 	};
 

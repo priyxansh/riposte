@@ -28,12 +28,25 @@
 	function handleSubmit() {
 		if (isSubmitting || !roomName.trim()) return;
 
+		const playerName = localStorage.getItem('playerName');
+		const playerId = localStorage.getItem('playerId');
+
+		if (!playerName || !playerId) {
+			console.error('Player name or ID not found in localStorage', {
+				playerName,
+				playerId
+			});
+
+			return;
+		}
+
 		isSubmitting = true;
 
 		createRoom({
 			roomName: roomName.trim(),
 			mode: selectedMode.value,
-			hostId: crypto.randomUUID()
+			hostId: playerId,
+			hostName: playerName
 		});
 	}
 
