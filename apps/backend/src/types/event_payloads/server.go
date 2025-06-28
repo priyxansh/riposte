@@ -50,3 +50,10 @@ type PlayerJoinedResponse struct {
 	JoinerID   string `json:"joinerId"`
 	JoinerName string `json:"joinerName"`
 }
+
+type GameLoopResponse struct {
+	RoomID       string                   `json:"roomId"`
+	PlayerStates []*gametypes.PlayerState `json:"playerStates"`
+}
+
+type StartGameResponse struct{}

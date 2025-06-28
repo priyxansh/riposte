@@ -4,7 +4,9 @@ import (
 	"log"
 	"slices"
 	"sync"
+	"time"
 
+	"riposte-backend/src/events"
 	"riposte-backend/src/types/errors"
 	eventpayloads "riposte-backend/src/types/event_payloads"
 	gametypes "riposte-backend/src/types/game_types"
@@ -158,4 +160,65 @@ func GetRoom(roomID string) (*gametypes.Room, error) {
 	}
 
 	return room, nil
+}
+
+func StartGameLoop(roomID string) error {
+	mu.Lock()
+	room, exists := rooms[roomID]
+	mu.Unlock()
+
+	if !exists {
+		log.Printf("StartGameLoop: room %s not found\n", roomID)
+		return errors.NewGameError(errors.ErrRoomNotFound, "room not found")
+	}
+
+	maxPlayers := 2
+	if room.Mode == "2v2" {
+		maxPlayers = 4
+	}
+
+	// Check if room has enough players to start
+	if room.Mode == "1v1" && len(room.Players) < maxPlayers {
+		log.Printf("StartGameLoop: not enough players in room %s for 1v1\n", roomID)
+		return errors.NewGameError(errors.ErrNotEnoughPlayers, "not enough players for 1v1")
+	}
+	if room.Mode == "2v2" && len(room.Players) < maxPlayers {
+		log.Printf("StartGameLoop: not enough players in room %s for 2v2\n", roomID)
+		return errors.NewGameError(errors.ErrNotEnoughPlayers, "not enough players for 2v2")
+	}
+
+	ticker := time.NewTicker(16 * time.Millisecond) // ~60Hz
+
+	go func() {
+		defer ticker.Stop()
+		log.Printf("Game loop started for room %s", roomID)
+
+		// Preallocate the player states slice once
+		states := make([]*gametypes.PlayerState, 0, maxPlayers)
+
+		for range ticker.C {
+			// Reset slice length, keep capacity
+			states = states[:0]
+
+			room.DoLocked(func() {
+				for _, player := range room.Players {
+					if player.Conn == nil {
+						continue
+					}
+					states = append(states, player.State)
+				}
+			})
+
+			payload := &eventpayloads.GameLoopResponse{
+				RoomID:       roomID,
+				PlayerStates: states,
+			}
+
+			if err := BroadcastToRoom(roomID, events.GameLoop, payload); err != nil {
+				log.Printf("BroadcastToRoom error: %v", err)
+			}
+		}
+	}()
+
+	return nil
 }

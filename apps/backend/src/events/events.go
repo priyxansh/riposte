@@ -19,4 +19,5 @@ const (
 
 	PlayerJoined = "player_joined"
 	PlayerLeft   = "player_left"
+	GameLoop     = "game_loop"
 )

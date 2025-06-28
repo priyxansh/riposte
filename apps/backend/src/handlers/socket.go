@@ -210,6 +210,24 @@ func SocketHandler(c *websocket.Conn) {
 				Players:  playerMetadataList,
 			}, nil)
 
+		case events.StartGame:
+			var payload eventpayloads.StartGamePayload
+			if err := json.Unmarshal(incoming.Payload, &payload); err != nil {
+				log.Println("start game payload error:", err)
+				break
+			}
+
+			log.Printf("Starting game in room: %+v\n", payload)
+
+			if err := services.StartGameLoop(payload.RoomID); err != nil {
+				log.Println("start game error:", err)
+				utils.SendResponse[*eventpayloads.StartGameResponse](c, events.StartGame, nil, errors.WrapError(err))
+
+				continue
+			}
+
+			utils.SendResponse(c, events.StartGame, &eventpayloads.StartGameResponse{}, nil)
+
 		default:
 			log.Println("Unhandled event:", incoming.Event)
 		}

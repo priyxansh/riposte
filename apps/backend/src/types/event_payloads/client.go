@@ -20,3 +20,7 @@ type LeaveRoomPayload struct {
 type RoomStatePayload struct {
 	RoomID string `json:"roomId"`
 }
+
+type StartGamePayload struct {
+	RoomID string `json:"roomId"`
+}
