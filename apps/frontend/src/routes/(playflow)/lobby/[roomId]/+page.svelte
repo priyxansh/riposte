@@ -8,8 +8,6 @@
 	// Get room ID from route params
 	let roomId = $derived(page.params.roomId);
 
-	console.log('Lobby page loaded with roomId:', page.params.roomId);
-
 	onMount(() => {
 		if ((!socketManager.roomState && roomId) || socketManager.roomState?.id !== roomId) {
 			goto(`/lobby`);

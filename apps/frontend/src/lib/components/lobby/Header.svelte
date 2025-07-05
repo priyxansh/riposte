@@ -2,7 +2,7 @@
 	import Badge from '../ui/badge/badge.svelte';
 </script>
 
-<header class="flex flex-col items-center pt-16 pb-8">
+<header class="mx-4 flex basis-1/4 flex-col items-center pb-8 pt-16">
 	<Badge variant="secondary" class="mb-4 border-blue-500/30 bg-blue-500/20 text-blue-300">
 		Prototype
 	</Badge>

@@ -14,7 +14,7 @@
 </script>
 
 <GameBackground>
-	<div class="w-full grid-cols-2 items-center gap-20 sm:grid">
+	<div class="w-full items-center gap-20 sm:flex">
 		<Header />
 		{@render children()}
 	</div>
