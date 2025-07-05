@@ -15,7 +15,7 @@
 	} = $props();
 </script>
 
-<Card.Root class="border-gray-700 bg-gray-800/80 backdrop-blur-sm">
+<Card.Root class="border-gray-700 bg-gray-800/80 backdrop-blur-sm flex-grow">
 	<Card.Header>
 		<Card.Title class="flex items-center gap-2 text-white">
 			<User class="h-5 w-5" />
