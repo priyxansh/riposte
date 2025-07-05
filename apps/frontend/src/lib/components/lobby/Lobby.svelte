@@ -5,6 +5,9 @@
 	import RoomInfo from './RoomInfo.svelte';
 	import GameControls from './GameControls.svelte';
 	import { onMount } from 'svelte';
+	import { getRoomState } from '$lib/socket/emitters/getRoomState';
+	import { EVENTS } from '$lib/constants/events';
+	import { getRoomStateHandler } from '$lib/socket/handlers/getRoomStateHandler';
 
 	let currentPlayerId = $state(''); // TODO: Get from user session/auth
 
@@ -19,6 +22,20 @@
 		if (playerId) {
 			currentPlayerId = playerId;
 		}
+	});
+
+	onMount(() => {
+		// Emit an event to sync the room state when the component mounts
+		getRoomState();
+	});
+
+	// Handle room state updates
+	$effect(() => {
+		socketManager.addMessageListener(EVENTS.GET_ROOM_STATE, getRoomStateHandler);
+
+		return () => {
+			socketManager.removeMessageListener(EVENTS.GET_ROOM_STATE, getRoomStateHandler);
+		};
 	});
 
 	// ToDo: Implement actual game start, ready toggle, and leave room logic
