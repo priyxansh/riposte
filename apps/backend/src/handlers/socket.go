@@ -87,6 +87,8 @@ func SocketHandler(c *websocket.Conn) {
 			utils.SendResponse(c, events.CreateRoom, &eventpayloads.CreateRoomResponse{
 				RoomID:   room.RoomID,
 				RoomName: room.Name,
+				HostID:   room.HostID,
+				Mode:     room.Mode,
 			}, nil)
 
 		case events.JoinRoom:

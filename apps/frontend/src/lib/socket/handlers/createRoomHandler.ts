@@ -15,9 +15,8 @@ export const createRoomHandler = (
 		return;
 	}
 
-	// ToDo: Maybe add zod validation for payload.data
 	const roomId = payload.data!.roomId;
-	const roomName = payload.data!.roomName || `Room ${roomId}`; // Fallback to a default room name if not provided
+	const roomName = payload.data!.roomName;
 	const mode = payload.data!.mode || '1v1';
 	const hostId = payload.data!.hostId || '';
 

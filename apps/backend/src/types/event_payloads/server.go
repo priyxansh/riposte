@@ -19,6 +19,8 @@ type BaseBroadcastResponse[T any] struct {
 type CreateRoomResponse struct {
 	RoomID   string `json:"roomId"`
 	RoomName string `json:"roomName"`
+	HostID   string `json:"hostId"`
+	Mode     string `json:"mode"`
 }
 
 type JoinRoomResponse struct {
