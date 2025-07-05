@@ -180,8 +180,8 @@ func SocketHandler(c *websocket.Conn) {
 				log.Println("broadcast player left error:", err)
 			}
 
-		case events.RoomState:
-			var payload eventpayloads.RoomStatePayload
+		case events.GetRoomState:
+			var payload eventpayloads.GetRoomStatePayload
 			if err := json.Unmarshal(incoming.Payload, &payload); err != nil {
 				log.Println("room state payload error:", err)
 				break
@@ -193,7 +193,7 @@ func SocketHandler(c *websocket.Conn) {
 
 			if err != nil {
 				log.Println("get room error:", err)
-				utils.SendResponse[*eventpayloads.RoomStateResponse](c, events.RoomState, nil, errors.WrapError(err))
+				utils.SendResponse[*eventpayloads.GetRoomStateResponse](c, events.GetRoomState, nil, errors.WrapError(err))
 
 				continue
 			}
@@ -204,7 +204,7 @@ func SocketHandler(c *websocket.Conn) {
 				playerMetadataList[i] = player.Metadata
 			}
 
-			utils.SendResponse(c, events.RoomState, &eventpayloads.RoomStateResponse{
+			utils.SendResponse(c, events.GetRoomState, &eventpayloads.GetRoomStateResponse{
 				RoomID:   room.RoomID,
 				RoomName: room.Name,
 				HostID:   room.HostID,

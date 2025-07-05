@@ -28,3 +28,11 @@ export type JoinRoomResponse = {
 };
 
 export type LeaveRoomResponse = {};
+
+export type GetRoomStateResponse = {
+	roomId: string;
+	roomName: string;
+	hostId: string;
+	mode: '1v1' | '2v2';
+	players: Player[];
+};

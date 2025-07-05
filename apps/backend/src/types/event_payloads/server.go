@@ -33,7 +33,7 @@ type JoinRoomResponse struct {
 
 type LeaveRoomResponse struct{}
 
-type RoomStateResponse struct {
+type GetRoomStateResponse struct {
 	RoomID   string                      `json:"roomId"`
 	RoomName string                      `json:"roomName"`
 	HostID   string                      `json:"hostId"`

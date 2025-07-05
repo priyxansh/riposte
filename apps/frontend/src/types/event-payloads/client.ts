@@ -14,3 +14,5 @@ export type JoinRoomPayload = {
 export type LeaveRoomPayload = {
 	roomId: string;
 };
+
+export type GetRoomStatePayload = {};

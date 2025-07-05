@@ -17,7 +17,7 @@ type LeaveRoomPayload struct {
 	RoomID string `json:"roomId"`
 }
 
-type RoomStatePayload struct {
+type GetRoomStatePayload struct {
 	RoomID string `json:"roomId"`
 }
 
