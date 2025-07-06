@@ -70,11 +70,6 @@
 				onLeaveRoom={handleLeaveRoom}
 			/>
 		</div>
-
-		<!-- Mobile Layout Adjustments -->
-		<div class="lg:hidden">
-			<!-- Additional mobile-specific controls or info can go here -->
-		</div>
 	</div>
 {:else}
 	<!-- Loading or No Room State -->
