@@ -8,6 +8,11 @@
 	import { EVENTS } from '$lib/constants/events';
 	import { getRoomStateHandler } from '$lib/socket/handlers/getRoomStateHandler';
 	import { playerJoinedHandler } from '$lib/socket/handlers/broadcast/playerJoinedHandler';
+	import { leaveRoom } from '$lib/socket/emitters/leaveRoom';
+	import type { BaseResponse, LeaveRoomResponse } from '../../../types/event-payloads/server';
+	import { goto } from '$app/navigation';
+	import { leaveRoomHandler } from '$lib/socket/handlers/leaveRoomHandler';
+	import { playerLeftHandler } from '$lib/socket/handlers/broadcast/playerLeftHandler';
 
 	let currentPlayerId = $state(''); // TODO: Get from user session/auth
 
@@ -15,6 +20,16 @@
 	let room = $derived(socketManager.roomState);
 	let isHost = $derived(room ? room.hostId === currentPlayerId : false);
 	let isReady = $state(false);
+
+	const handleLeaveRoomResponse = (payload: BaseResponse<LeaveRoomResponse>) => {
+		leaveRoomHandler(payload, onLeaveRoomDone);
+	};
+
+	const onLeaveRoomDone = (payload: BaseResponse<LeaveRoomResponse>) => {
+		if (payload.success) {
+			goto('/lobby'); // Redirect to lobby after leaving room
+		}
+	};
 
 	onMount(() => {
 		const playerId = localStorage.getItem('playerId');
@@ -33,14 +48,18 @@
 	$effect(() => {
 		socketManager.addMessageListener(EVENTS.GET_ROOM_STATE, getRoomStateHandler);
 		socketManager.addMessageListener(EVENTS.PLAYER_JOINED, playerJoinedHandler);
+		socketManager.addMessageListener(EVENTS.LEAVE_ROOM, handleLeaveRoomResponse);
+		socketManager.addMessageListener(EVENTS.PLAYER_LEFT, playerLeftHandler);
 
 		return () => {
 			socketManager.removeMessageListener(EVENTS.GET_ROOM_STATE, getRoomStateHandler);
 			socketManager.removeMessageListener(EVENTS.PLAYER_JOINED, playerJoinedHandler);
+			socketManager.removeMessageListener(EVENTS.LEAVE_ROOM, handleLeaveRoomResponse);
+			socketManager.removeMessageListener(EVENTS.PLAYER_LEFT, playerLeftHandler);
 		};
 	});
 
-	// ToDo: Implement actual game start, ready toggle, and leave room logic
+	// ToDo: Implement actual game start and ready toggle
 	function handleStartGame() {
 		console.log('Starting game...');
 	}
@@ -51,7 +70,8 @@
 	}
 
 	function handleLeaveRoom() {
-		console.log('Leaving room...');
+		// Emit leave room event
+		leaveRoom();
 	}
 </script>
 

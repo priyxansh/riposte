@@ -42,3 +42,9 @@ export type PlayerJoinedResponse = {
 	joinerId: string;
 	joinerName: string;
 };
+
+export type PlayerLeftResponse = {
+	roomId: string;
+	playerId: string;
+	playerName: string;
+};
