@@ -13,3 +13,6 @@ tmp_dir = "tmp"
 
 [log]
   time = true
+
+[app]
+  kill_delay = 1000  # milliseconds
