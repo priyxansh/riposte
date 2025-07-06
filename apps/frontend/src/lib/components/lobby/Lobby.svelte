@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { socketManager } from '$lib/stores/socket.svelte';
-	import { goto } from '$app/navigation';
 	import PlayerList from './PlayerList.svelte';
 	import RoomInfo from './RoomInfo.svelte';
 	import GameControls from './GameControls.svelte';
@@ -8,6 +7,7 @@
 	import { getRoomState } from '$lib/socket/emitters/getRoomState';
 	import { EVENTS } from '$lib/constants/events';
 	import { getRoomStateHandler } from '$lib/socket/handlers/getRoomStateHandler';
+	import { playerJoinedHandler } from '$lib/socket/handlers/broadcast/playerJoinedHandler';
 
 	let currentPlayerId = $state(''); // TODO: Get from user session/auth
 
@@ -32,9 +32,11 @@
 	// Handle room state updates
 	$effect(() => {
 		socketManager.addMessageListener(EVENTS.GET_ROOM_STATE, getRoomStateHandler);
+		socketManager.addMessageListener(EVENTS.PLAYER_JOINED, playerJoinedHandler);
 
 		return () => {
 			socketManager.removeMessageListener(EVENTS.GET_ROOM_STATE, getRoomStateHandler);
+			socketManager.removeMessageListener(EVENTS.PLAYER_JOINED, playerJoinedHandler);
 		};
 	});
 

@@ -36,3 +36,9 @@ export type GetRoomStateResponse = {
 	mode: '1v1' | '2v2';
 	players: Player[];
 };
+
+export type PlayerJoinedResponse = {
+	roomId: string;
+	joinerId: string;
+	joinerName: string;
+};

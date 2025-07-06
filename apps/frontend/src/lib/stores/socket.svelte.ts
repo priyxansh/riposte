@@ -1,11 +1,11 @@
 import type { EventName } from '$lib/constants/events';
 import type { Room } from '../../types/room';
-import type { EventCallback } from '../../types/socket';
+import type { BroadcastCallback, EventCallback } from '../../types/socket';
 
 class SocketManager {
-	private listeners: Map<EventName, Set<EventCallback>> = new Map();
+	private listeners: Map<EventName, Set<EventCallback | BroadcastCallback>> = new Map();
 
-	public addMessageListener(event: EventName, callback: EventCallback) {
+	public addMessageListener(event: EventName, callback: EventCallback | BroadcastCallback) {
 		if (!this.listeners.has(event)) {
 			this.listeners.set(event, new Set());
 		}
@@ -13,7 +13,7 @@ class SocketManager {
 		this.listeners.get(event)?.add(callback);
 	}
 
-	public removeMessageListener(event: EventName, callback: EventCallback) {
+	public removeMessageListener(event: EventName, callback: EventCallback | BroadcastCallback) {
 		this.listeners.get(event)?.delete(callback);
 
 		if (this.listeners.get(event)?.size === 0) {
