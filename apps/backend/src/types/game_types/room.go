@@ -51,8 +51,6 @@ func (r *Room) RemovePlayerByID(playerID string) *PlayerMetadata {
 }
 
 func (r *Room) ConnCount() int {
-	r.mu.Lock()
-	defer r.mu.Unlock()
 	return len(r.Players)
 }
 

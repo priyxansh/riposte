@@ -110,6 +110,9 @@ func LeaveRoom(roomID string, playerId string) (*gametypes.PlayerMetadata, error
 		mu.Lock()
 		delete(rooms, roomID)
 		mu.Unlock()
+		log.Printf("Room %s deleted after player %s left", roomID, playerId)
+	} else {
+		log.Printf("Player %s left room %s", playerId, roomID)
 	}
 
 	return playerMetadata, nil
