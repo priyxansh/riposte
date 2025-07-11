@@ -48,3 +48,9 @@ export type PlayerLeftResponse = {
 	playerId: string;
 	playerName: string;
 };
+
+export type StartGameResponse = {};
+
+export type GameStartedResponse = {
+	roomId: string;
+};

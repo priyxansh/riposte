@@ -1,0 +1,1 @@
+<div>Hello world from /game/xyz.</div>

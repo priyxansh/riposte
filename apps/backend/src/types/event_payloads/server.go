@@ -59,3 +59,7 @@ type GameLoopResponse struct {
 }
 
 type StartGameResponse struct{}
+
+type GameStartedResponse struct {
+	RoomID string `json:"roomId"`
+}

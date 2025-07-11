@@ -15,4 +15,10 @@ export type LeaveRoomPayload = {
 	roomId: string;
 };
 
-export type GetRoomStatePayload = {};
+export type GetRoomStatePayload = {
+	roomId: string;
+};
+
+export type StartGamePayload = {
+	roomId: string;
+};

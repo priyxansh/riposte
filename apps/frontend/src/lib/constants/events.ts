@@ -5,7 +5,9 @@ export const EVENTS = {
 	LEAVE_ROOM: 'leave_room',
 	GET_ROOM_STATE: 'get_room_state',
 	PLAYER_JOINED: 'player_joined',
-	PLAYER_LEFT: 'player_left'
+	PLAYER_LEFT: 'player_left',
+	START_GAME: 'start_game',
+	GAME_STARTED: 'game_started'
 } as const;
 
 export type EventKey = keyof typeof EVENTS;

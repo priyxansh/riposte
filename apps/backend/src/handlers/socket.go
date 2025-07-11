@@ -230,6 +230,17 @@ func SocketHandler(c *websocket.Conn) {
 
 			utils.SendResponse(c, events.StartGame, &eventpayloads.StartGameResponse{}, nil)
 
+			// Notify all players in the room
+			broadcastPayload := &eventpayloads.GameStartedResponse{
+				RoomID: payload.RoomID,
+			}
+
+			err = services.BroadcastToRoom(payload.RoomID, events.GameStarted, broadcastPayload, playerID)
+
+			if err != nil {
+				log.Println("broadcast game started error:", err)
+			}
+
 		default:
 			log.Println("Unhandled event:", incoming.Event)
 		}
