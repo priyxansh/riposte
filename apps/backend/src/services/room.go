@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"riposte-backend/src/constants"
 	"riposte-backend/src/events"
 	"riposte-backend/src/types/errors"
 	eventpayloads "riposte-backend/src/types/event_payloads"
@@ -190,6 +191,9 @@ func StartGameLoop(roomID string) error {
 		return errors.NewGameError(errors.ErrNotEnoughPlayers, "not enough players for 2v2")
 	}
 
+	// Assign initial states to players before starting the game loop
+	AssignInitialStates(room)
+
 	ticker := time.NewTicker(16 * time.Millisecond) // ~60Hz
 
 	go func() {
@@ -224,4 +228,23 @@ func StartGameLoop(roomID string) error {
 	}()
 
 	return nil
+}
+
+func AssignInitialStates(room *gametypes.Room) {
+	var initialStates []*gametypes.PlayerState
+
+	switch room.Mode {
+	case "1v1":
+		initialStates = constants.InitialStates1v1
+	case "2v2":
+		initialStates = constants.InitialStates2v2
+	}
+
+	for i, player := range room.Players {
+		if i < len(initialStates) {
+			player.State = initialStates[i]
+		} else {
+			player.State = &gametypes.PlayerState{X: 0, Y: 0, VX: 0, VY: 0}
+		}
+	}
 }

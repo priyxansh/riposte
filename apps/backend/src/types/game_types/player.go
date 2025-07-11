@@ -16,6 +16,8 @@ type PlayerMetadata struct {
 }
 
 type PlayerState struct {
-	X int `json:"x"`
-	Y int `json:"y"` // For simplicity
+	X  float64 `json:"x"`
+	Y  float64 `json:"y"`
+	VX float64 `json:"vx"` // velocity x
+	VY float64 `json:"vy"` // velocity y
 }
