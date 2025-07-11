@@ -1,7 +1,9 @@
+import { getRoomState as getRoomStateValue } from '$lib/stores/room.svelte';
 import { socketManager } from '$lib/stores/socket.svelte';
 
 export const getRoomState = () => {
-	const roomId = socketManager.roomState?.id;
+	const room = getRoomStateValue();
+	const roomId = room?.id;
 
 	if (!roomId) {
 		console.error('No room ID found. Cannot get room state.');

@@ -1,5 +1,4 @@
 import type { EventName } from '$lib/constants/events';
-import type { Room } from '../../types/room';
 import type { BroadcastCallback, EventCallback } from '../../types/socket';
 
 class SocketManager {
@@ -30,12 +29,6 @@ class SocketManager {
 		connectionState: 'disconnected' as 'connected' | 'disconnected' | 'error',
 		error: null as Error | null
 	});
-
-	public roomState = $state<Room | null>();
-
-	public clearRoomState() {
-		this.roomState = null;
-	}
 
 	public get socket() {
 		return this.state.socket;

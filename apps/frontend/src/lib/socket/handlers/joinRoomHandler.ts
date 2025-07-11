@@ -1,4 +1,4 @@
-import { socketManager } from '$lib/stores/socket.svelte';
+import { clearRoomState, setRoomState } from '$lib/stores/room.svelte';
 import type { ResponsePayload } from '../../../types/event-payloads/payload-map';
 
 export const joinRoomHandler = (
@@ -16,17 +16,17 @@ export const joinRoomHandler = (
 	}
 
 	// Clear previous roomState
-	socketManager.clearRoomState();
+	clearRoomState();
 
 	const { roomId, hostId, mode, players, roomName } = payload.data;
 
-	socketManager.roomState = {
+	setRoomState({
 		id: roomId,
 		name: roomName,
 		hostId: hostId,
 		mode: mode,
 		players: players
-	};
+	});
 
 	if (done) {
 		done(payload);

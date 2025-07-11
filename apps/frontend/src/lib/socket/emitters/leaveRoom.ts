@@ -1,8 +1,10 @@
 import { EVENTS } from '$lib/constants/events';
+import { getRoomState as getRoomStateValue } from '$lib/stores/room.svelte';
 import { socketManager } from '$lib/stores/socket.svelte';
 
 export const leaveRoom = () => {
-	const roomId = socketManager.roomState?.id;
+	const room = getRoomStateValue();
+	const roomId = room?.id;
 
 	if (!roomId) {
 		console.error('No room ID found. Cannot leave room.');

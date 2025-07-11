@@ -22,11 +22,12 @@
 	import { startGame } from '$lib/socket/emitters/startGame';
 	import { startGameHandler } from '$lib/socket/handlers/startGameHandler';
 	import { gameStartedHandler } from '$lib/socket/handlers/broadcast/gameStartedHandler';
+	import { getRoomState as getRoomStateValue } from '$lib/stores/room.svelte';
 
 	let currentPlayerId = $state(''); // TODO: Get from user session/auth
 
 	// Reactive state from socket manager
-	let room = $derived(socketManager.roomState);
+	let room = $derived(getRoomStateValue());
 	let isHost = $derived(room ? room.hostId === currentPlayerId : false);
 	let isReady = $state(false);
 

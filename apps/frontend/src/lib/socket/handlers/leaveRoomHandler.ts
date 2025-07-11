@@ -1,4 +1,4 @@
-import { socketManager } from '$lib/stores/socket.svelte';
+import { clearRoomState } from '$lib/stores/room.svelte';
 import type { BaseResponse, LeaveRoomResponse } from '../../../types/event-payloads/server';
 
 export const leaveRoomHandler = (
@@ -16,7 +16,7 @@ export const leaveRoomHandler = (
 	}
 
 	// Clear the room state
-	socketManager.clearRoomState();
+	clearRoomState();
 
 	if (done) {
 		done(payload);

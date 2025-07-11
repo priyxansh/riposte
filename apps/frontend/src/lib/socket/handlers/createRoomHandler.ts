@@ -1,4 +1,4 @@
-import { socketManager } from '$lib/stores/socket.svelte';
+import { clearRoomState, setRoomState } from '$lib/stores/room.svelte';
 import type { BaseResponse, CreateRoomResponse } from '../../../types/event-payloads/server';
 
 export const createRoomHandler = (
@@ -21,15 +21,15 @@ export const createRoomHandler = (
 	const hostId = payload.data!.hostId || '';
 
 	// Clear previous roomState
-	socketManager.clearRoomState();
+	clearRoomState();
 
-	socketManager.roomState = {
+	setRoomState({
 		id: roomId,
 		name: roomName,
 		hostId: hostId,
 		mode: mode,
 		players: []
-	};
+	});
 
 	console.log(`Room created with ID: ${roomId}`);
 

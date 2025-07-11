@@ -1,4 +1,4 @@
-import { socketManager } from '$lib/stores/socket.svelte';
+import { clearRoomState, setRoomState } from '$lib/stores/room.svelte';
 import type { BaseResponse, GetRoomStateResponse } from '../../../types/event-payloads/server';
 
 export const getRoomStateHandler = (
@@ -15,23 +15,23 @@ export const getRoomStateHandler = (
 		return;
 	}
 
-	const roomState = payload.data;
+	const roomStateData = payload.data;
 
-	if (!roomState) {
+	if (!roomStateData) {
 		console.error('No room state data found in response');
 		return;
 	}
 
 	// Clear previous roomState
-	socketManager.clearRoomState();
+	clearRoomState();
 
-	socketManager.roomState = {
-		id: roomState.roomId,
-		name: roomState.roomName,
-		hostId: roomState.hostId,
-		mode: roomState.mode || '1v1',
-		players: roomState.players || []
-	};
+	setRoomState({
+		id: roomStateData.roomId,
+		name: roomStateData.roomName,
+		hostId: roomStateData.hostId,
+		mode: roomStateData.mode || '1v1',
+		players: roomStateData.players || []
+	});
 
 	if (done) {
 		done(payload);
