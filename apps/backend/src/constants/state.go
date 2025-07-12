@@ -45,4 +45,4 @@ var InitialStates2v2 = []*gametypes.PlayerState{
 	},
 }
 
-var DefaultSpeed = 50 // px per second
+var DefaultSpeed = 200 // px per second

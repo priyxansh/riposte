@@ -63,3 +63,5 @@ type StartGameResponse struct{}
 type GameStartedResponse struct {
 	RoomID string `json:"roomId"`
 }
+
+type MovePlayerResponse struct{}

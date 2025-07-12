@@ -241,6 +241,23 @@ func SocketHandler(c *websocket.Conn) {
 				log.Println("broadcast game started error:", err)
 			}
 
+		case events.MovePlayer:
+			var payload eventpayloads.MovePlayerPayload
+			if err := json.Unmarshal(incoming.Payload, &payload); err != nil {
+				log.Println("move player payload error:", err)
+				break
+			}
+
+			log.Printf("Moving player: %+v\n", payload)
+
+			if err := services.MovePlayer(joinedRoomID, payload); err != nil {
+				log.Println("move player error:", err)
+				utils.SendResponse[*eventpayloads.MovePlayerResponse](c, events.MovePlayer, nil, errors.WrapError(err))
+				continue
+			}
+
+			// No success response needed, since the game loop will handle broadcasting player states each tick
+
 		default:
 			log.Println("Unhandled event:", incoming.Event)
 		}

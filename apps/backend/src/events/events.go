@@ -14,6 +14,7 @@ const (
 	GameEnd          = "game_end"
 	PlayerDisconnect = "player_disconnect"
 	GetRoomState     = "get_room_state"
+	MovePlayer       = "move_player"
 
 	// Server emitted events, mainly broadcasts
 

@@ -258,3 +258,39 @@ func AssignInitialStates(room *gametypes.Room) {
 		}
 	}
 }
+
+func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
+	mu.Lock()
+	room, exists := rooms[roomID]
+	mu.Unlock()
+
+	if !exists {
+		return errors.NewGameError(errors.ErrRoomNotFound, "room not found")
+	}
+
+	room.DoLocked(func() {
+		for _, player := range room.Players {
+			if player.Metadata.ID != payload.PlayerID {
+				continue
+			}
+
+			if payload.KeyState == "released" {
+				player.State.VX = 0
+				return
+			}
+
+			switch payload.Direction {
+			case "left":
+				player.State.VX = -float64(constants.DefaultSpeed)
+			case "right":
+				player.State.VX = float64(constants.DefaultSpeed)
+			default:
+				player.State.VX = 0
+			}
+
+			break
+		}
+	})
+
+	return nil
+}
