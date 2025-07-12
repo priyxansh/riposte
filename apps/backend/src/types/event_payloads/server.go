@@ -54,8 +54,8 @@ type PlayerJoinedResponse struct {
 }
 
 type GameLoopResponse struct {
-	RoomID       string                   `json:"roomId"`
-	PlayerStates []*gametypes.PlayerState `json:"playerStates"`
+	RoomID       string                      `json:"roomId"`
+	PlayerStates []*gametypes.PlayerSnapshot `json:"playerStates"`
 }
 
 type StartGameResponse struct{}

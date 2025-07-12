@@ -201,7 +201,7 @@ func StartGameLoop(roomID string) error {
 		log.Printf("Game loop started for room %s", roomID)
 
 		// Preallocate the player states slice once
-		states := make([]*gametypes.PlayerState, 0, maxPlayers)
+		states := make([]*gametypes.PlayerSnapshot, 0, maxPlayers)
 
 		for range ticker.C {
 			// Reset slice length, keep capacity
@@ -212,7 +212,11 @@ func StartGameLoop(roomID string) error {
 					if player.Conn == nil {
 						continue
 					}
-					states = append(states, player.State)
+
+					states = append(states, &gametypes.PlayerSnapshot{
+						PlayerMetadata: *player.Metadata,
+						State:          player.State,
+					})
 				}
 			})
 

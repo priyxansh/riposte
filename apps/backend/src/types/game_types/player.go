@@ -21,3 +21,8 @@ type PlayerState struct {
 	VX float64 `json:"vx"` // velocity x
 	VY float64 `json:"vy"` // velocity y
 }
+
+type PlayerSnapshot struct {
+	PlayerMetadata
+	State *PlayerState `json:"state"`
+}

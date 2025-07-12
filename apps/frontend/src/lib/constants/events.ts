@@ -7,7 +7,8 @@ export const EVENTS = {
 	PLAYER_JOINED: 'player_joined',
 	PLAYER_LEFT: 'player_left',
 	START_GAME: 'start_game',
-	GAME_STARTED: 'game_started'
+	GAME_STARTED: 'game_started',
+	GAME_LOOP: 'game_loop'
 } as const;
 
 export type EventKey = keyof typeof EVENTS;

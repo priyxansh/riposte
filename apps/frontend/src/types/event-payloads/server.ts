@@ -1,5 +1,5 @@
 import type { GameError } from '../game-error';
-import type { Player } from '../player';
+import type { Player, PlayerSnapshot } from '../player';
 
 export type BaseResponse<T> = {
 	success: boolean;
@@ -53,4 +53,9 @@ export type StartGameResponse = {};
 
 export type GameStartedResponse = {
 	roomId: string;
+};
+
+export type GameLoopResponse = {
+	roomId: string;
+	playerStates: PlayerSnapshot[];
 };
