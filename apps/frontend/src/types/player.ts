@@ -14,3 +14,6 @@ export type PlayerState = {
 	vx: number;
 	vy: number;
 };
+
+export type MoveDirection = 'left' | 'right';
+export type KeyState = 'pressed' | 'released';

@@ -6,6 +6,7 @@
 	import { gameLoopHandler } from '$lib/socket/handlers/broadcast/gameLoopHandler';
 	import { socketManager } from '$lib/stores/socket.svelte';
 	import { EVENTS } from '$lib/constants/events';
+	import { getMoveListener } from '$lib/control-listeners/moveListener';
 
 	const roomState = $derived(getRoomState());
 
@@ -15,9 +16,24 @@
 		}
 	});
 
-	$effect(() => {
-		console.log({ roomState });
+	const pressedListener = getMoveListener('pressed');
+	const releasedListener = getMoveListener('released');
 
+	onMount(() => {
+		if (window) {
+			window.addEventListener('keydown', pressedListener);
+			window.addEventListener('keyup', releasedListener);
+		}
+
+		return () => {
+			if (window) {
+				window.removeEventListener('keydown', pressedListener);
+				window.removeEventListener('keyup', releasedListener);
+			}
+		};
+	});
+
+	$effect(() => {
 		socketManager.addMessageListener(EVENTS.GAME_LOOP, gameLoopHandler);
 
 		return () => {

@@ -1,3 +1,5 @@
+import type { KeyState, MoveDirection } from '../player';
+
 export type CreateRoomPayload = {
 	roomName: string;
 	mode: '1v1' | '2v2';
@@ -21,4 +23,10 @@ export type GetRoomStatePayload = {
 
 export type StartGamePayload = {
 	roomId: string;
+};
+
+export type MovePlayerPayload = {
+	playerId: string;
+	direction: MoveDirection;
+	keyState: KeyState;
 };
