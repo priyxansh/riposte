@@ -182,13 +182,9 @@ func StartGameLoop(roomID string) error {
 	}
 
 	// Check if room has enough players to start
-	if room.Mode == "1v1" && len(room.Players) < maxPlayers {
-		log.Printf("StartGameLoop: not enough players in room %s for 1v1\n", roomID)
-		return errors.NewGameError(errors.ErrNotEnoughPlayers, "not enough players for 1v1")
-	}
-	if room.Mode == "2v2" && len(room.Players) < maxPlayers {
-		log.Printf("StartGameLoop: not enough players in room %s for 2v2\n", roomID)
-		return errors.NewGameError(errors.ErrNotEnoughPlayers, "not enough players for 2v2")
+	if len(room.Players) < maxPlayers {
+		log.Printf("StartGameLoop: not enough players in room %s for %s\n", roomID, room.Mode)
+		return errors.NewGameError(errors.ErrNotEnoughPlayers, "not enough players to start")
 	}
 
 	// Assign initial states to players before starting the game loop
@@ -203,15 +199,25 @@ func StartGameLoop(roomID string) error {
 		// Preallocate the player states slice once
 		states := make([]*gametypes.PlayerSnapshot, 0, maxPlayers)
 
+		previousTime := time.Now()
+
 		for range ticker.C {
+			currentTime := time.Now()
+			deltaTime := currentTime.Sub(previousTime).Seconds() // in seconds (float64)
+			previousTime = currentTime
+
 			// Reset slice length, keep capacity
 			states = states[:0]
 
 			room.DoLocked(func() {
+				// Update player positions based on velocity and deltaTime
 				for _, player := range room.Players {
-					if player.Conn == nil {
+					if player.Conn == nil || player.State == nil {
 						continue
 					}
+
+					player.State.X += player.State.VX * deltaTime
+					player.State.Y += player.State.VY * deltaTime
 
 					states = append(states, &gametypes.PlayerSnapshot{
 						PlayerMetadata: *player.Metadata,
