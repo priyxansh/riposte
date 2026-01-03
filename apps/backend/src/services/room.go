@@ -290,22 +290,33 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 				continue
 			}
 
-			if payload.KeyState == "released" {
-				player.State.VX = 0
-				return
-			}
+
 
 			switch payload.Direction {
 			case "left":
-				player.State.VX = -float64(constants.DefaultSpeed)
-			case "right":
-				player.State.VX = float64(constants.DefaultSpeed)
-			case "jump":
-				// Only allow jump if player is grounded
-				if player.State.IsGrounded {
-					player.State.VY = constants.JumpStrength
+				if payload.KeyState == "pressed" {
+					player.State.VX = -float64(constants.DefaultSpeed)
+				} else {
+					player.State.VX = 0
 				}
-
+			case "right":
+				if payload.KeyState == "pressed" {
+					player.State.VX = float64(constants.DefaultSpeed)
+				} else {
+					player.State.VX = 0
+				}
+			case "jump":
+				if payload.KeyState == "pressed" {
+					// Only allow jump if player is grounded
+					if player.State.IsGrounded {
+						player.State.VY = constants.JumpStrength
+					}
+				} else if payload.KeyState == "released" {
+					// Variable jump: Cut velocity if still rising
+					if player.State.VY < 0 {
+						player.State.VY *= 0.5
+					}
+				}
 			default:
 				player.State.VX = 0
 			}
