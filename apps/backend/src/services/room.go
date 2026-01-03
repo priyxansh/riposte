@@ -215,9 +215,25 @@ func StartGameLoop(roomID string) error {
 					if player.Conn == nil || player.State == nil {
 						continue
 					}
+					// Apply gravity
+					player.State.VY += constants.Gravity * deltaTime
+
+					// Enforce terminal velocity
+					if player.State.VY > constants.TerminalVelocity {
+						player.State.VY = constants.TerminalVelocity
+					}
 
 					player.State.X += player.State.VX * deltaTime
 					player.State.Y += player.State.VY * deltaTime
+
+					// Ground collision detection
+					if player.State.Y >= constants.GroundLevel {
+						player.State.Y = constants.GroundLevel
+						player.State.VY = 0
+						player.State.IsGrounded = true
+					} else {
+						player.State.IsGrounded = false
+					}
 
 					states = append(states, &gametypes.PlayerSnapshot{
 						PlayerMetadata: *player.Metadata,
@@ -284,6 +300,12 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 				player.State.VX = -float64(constants.DefaultSpeed)
 			case "right":
 				player.State.VX = float64(constants.DefaultSpeed)
+			case "jump":
+				// Only allow jump if player is grounded
+				if player.State.IsGrounded {
+					player.State.VY = constants.JumpStrength
+				}
+
 			default:
 				player.State.VX = 0
 			}

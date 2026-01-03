@@ -13,7 +13,8 @@ export type PlayerState = {
 	y: number;
 	vx: number;
 	vy: number;
+	isGrounded: boolean;
 };
 
-export type MoveDirection = 'left' | 'right';
+export type MoveDirection = 'left' | 'right' | 'jump';
 export type KeyState = 'pressed' | 'released';

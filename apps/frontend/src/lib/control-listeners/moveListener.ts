@@ -10,6 +10,14 @@ export const getMoveListener = (keyState: KeyState) => {
 			case 'ArrowRight':
 				movePlayer({ direction: 'right', keyState });
 				break;
+			case ' ': // Space bar for jump
+			case 'ArrowUp': // Also allow ArrowUp for jump
+				// Only send jump on keydown (pressed)
+				if (keyState === 'pressed') {
+					movePlayer({ direction: 'jump', keyState: 'pressed' });
+				}
+				break;
+
 			default:
 				console.log('Unhandled key:', e.key);
 		}

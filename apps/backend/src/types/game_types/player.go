@@ -16,10 +16,11 @@ type PlayerMetadata struct {
 }
 
 type PlayerState struct {
-	X  float64 `json:"x"`
-	Y  float64 `json:"y"`
-	VX float64 `json:"vx"` // velocity x
-	VY float64 `json:"vy"` // velocity y
+	X          float64 `json:"x"`
+	Y          float64 `json:"y"`
+	VX         float64 `json:"vx"` // velocity x
+	VY         float64 `json:"vy"` // velocity y
+	IsGrounded bool    `json:"isGrounded"`
 }
 
 type PlayerSnapshot struct {
