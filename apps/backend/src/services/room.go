@@ -208,6 +208,8 @@ func StartGameLoop(roomID string) error {
 
 			// Reset slice length, keep capacity
 			states = states[:0]
+			lastProcessedInput := make(map[string]int)
+
 
 			room.DoLocked(func() {
 				// Update player positions based on velocity and deltaTime
@@ -239,13 +241,19 @@ func StartGameLoop(roomID string) error {
 						PlayerMetadata: *player.Metadata,
 						State:          player.State,
 					})
+
+					// Track last processed input for this player
+					lastProcessedInput[player.Metadata.ID] = player.LastProcessedInput
+
 				}
 			})
 
 			payload := &eventpayloads.GameLoopResponse{
-				RoomID:       roomID,
-				PlayerStates: states,
+				RoomID:            roomID,
+				PlayerStates:      states,
+				LastProcessedInput: lastProcessedInput,
 			}
+
 
 			if err := BroadcastToRoom(roomID, events.GameLoop, payload); err != nil {
 				log.Printf("BroadcastToRoom error: %v", err)
@@ -290,7 +298,8 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 				continue
 			}
 
-
+			// Track the sequence number of this input
+			player.LastProcessedInput = payload.SequenceNumber
 
 			switch payload.Direction {
 			case "left":

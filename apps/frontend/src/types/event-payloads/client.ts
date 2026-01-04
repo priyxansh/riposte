@@ -29,4 +29,5 @@ export type MovePlayerPayload = {
 	playerId: string;
 	direction: MoveDirection;
 	keyState: KeyState;
+	sequenceNumber: number;
 };

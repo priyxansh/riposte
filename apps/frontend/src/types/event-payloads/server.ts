@@ -58,4 +58,5 @@ export type GameStartedResponse = {
 export type GameLoopResponse = {
 	roomId: string;
 	playerStates: PlayerSnapshot[];
+	lastProcessedInput: Record<string, number>; // playerID -> last processed sequence number
 };

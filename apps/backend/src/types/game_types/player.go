@@ -5,9 +5,10 @@ import (
 )
 
 type Player struct {
-	Conn     *websocket.Conn
-	Metadata *PlayerMetadata `json:"metadata"`
-	State    *PlayerState    `json:"state"`
+	Conn              *websocket.Conn
+	Metadata          *PlayerMetadata `json:"metadata"`
+	State             *PlayerState    `json:"state"`
+	LastProcessedInput int             // Last input sequence number processed for this player
 }
 
 type PlayerMetadata struct {

@@ -25,9 +25,10 @@ type StartGamePayload struct {
 	RoomID string `json:"roomId"`
 }
 
-// ToDo: Something like KeyState: "pressed" | "released" in ts. Doesn't seem worth it for now, maybe later tho.
+
 type MovePlayerPayload struct {
-	PlayerID  string `json:"playerId"`
-	Direction string `json:"direction"` // e.g., "left", "right"
-	KeyState  string `json:"keyState"`  // e.g., "pressed", "released"
+	PlayerID       string `json:"playerId"`
+	Direction      string `json:"direction"`      // e.g., "left", "right", "jump"
+	KeyState       string `json:"keyState"`       // e.g., "pressed", "released"
+	SequenceNumber int    `json:"sequenceNumber"` // Client input sequence number for reconciliation
 }

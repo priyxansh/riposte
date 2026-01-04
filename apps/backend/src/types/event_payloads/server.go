@@ -54,8 +54,9 @@ type PlayerJoinedResponse struct {
 }
 
 type GameLoopResponse struct {
-	RoomID       string                      `json:"roomId"`
-	PlayerStates []*gametypes.PlayerSnapshot `json:"playerStates"`
+	RoomID            string                      `json:"roomId"`
+	PlayerStates      []*gametypes.PlayerSnapshot `json:"playerStates"`
+	LastProcessedInput map[string]int              `json:"lastProcessedInput"` // playerID -> last processed sequence number
 }
 
 type StartGameResponse struct{}
