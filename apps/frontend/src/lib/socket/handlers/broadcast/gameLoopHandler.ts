@@ -27,7 +27,8 @@ export const gameLoopHandler = (
 				x: player.state.x,
 				y: player.state.y,
 				vx: player.state.vx,
-				vy: player.state.vy
+				vy: player.state.vy,
+				isGrounded: player.state.isGrounded
 			}
 		}))
 	});
