@@ -7,6 +7,8 @@
 	import { socketManager } from '$lib/stores/socket.svelte';
 	import { EVENTS } from '$lib/constants/events';
 	import { getMoveListener } from '$lib/control-listeners/moveListener';
+	import { resetPrediction } from '$lib/prediction/prediction';
+
 
 	const roomState = $derived(getRoomState());
 
@@ -38,6 +40,7 @@
 
 		return () => {
 			socketManager.removeMessageListener(EVENTS.GAME_LOOP, gameLoopHandler);
+			resetPrediction(); // Clear input buffer when leaving game
 		};
 	});
 </script>
