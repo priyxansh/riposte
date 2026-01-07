@@ -6,7 +6,9 @@
 	import { joinRoom } from '$lib/socket/emitters/joinRoom';
 	import { joinRoomHandler } from '$lib/socket/handlers/joinRoomHandler';
 	import { socketManager } from '$lib/stores/socket.svelte';
+	import { EVENTS } from '$lib/constants/events';
 	import type { ResponsePayload } from '../../../types/event-payloads/payload-map';
+
 
 	let roomId = $state('');
 	let isSubmitting = $state(false);
@@ -48,10 +50,11 @@
 	};
 
 	$effect(() => {
-		socketManager.addMessageListener('join_room', handleJoinRoom);
+		socketManager.addMessageListener(EVENTS.JOIN_ROOM, handleJoinRoom);
 
 		return () => {
-			socketManager.removeMessageListener('join_room', handleJoinRoom);
+			socketManager.removeMessageListener(EVENTS.JOIN_ROOM, handleJoinRoom);
+
 		};
 	});
 </script>
