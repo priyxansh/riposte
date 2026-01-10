@@ -2,20 +2,32 @@
 	import { goto } from '$app/navigation';
 	import { getRoomState } from '$lib/stores/room.svelte';
 	import { onMount } from 'svelte';
-	import Player from './Player.svelte';
 	import { gameLoopHandler } from '$lib/socket/handlers/broadcast/gameLoopHandler';
 	import { socketManager } from '$lib/stores/socket.svelte';
 	import { EVENTS } from '$lib/constants/events';
 	import { getMoveListener } from '$lib/control-listeners/moveListener';
 	import { resetPrediction } from '$lib/prediction/prediction';
+	import { launchGame, destroyGame } from '$lib/game/game';
 
+	const GAME_CONTAINER_ID = 'phaser-game-container';
 
 	const roomState = $derived(getRoomState());
 
 	onMount(() => {
 		if (!roomState) {
 			goto('/lobby');
+			return;
 		}
+
+		// Launch Phaser game
+		console.log('[GameCanvas] Launching Phaser game...');
+		launchGame(GAME_CONTAINER_ID);
+
+		return () => {
+			// Cleanup Phaser on unmount
+			console.log('[GameCanvas] Destroying Phaser game...');
+			destroyGame();
+		};
 	});
 
 	const pressedListener = getMoveListener('pressed');
@@ -46,9 +58,9 @@
 </script>
 
 {#if roomState}
-	<main class="relative h-full w-full">
-		{#each roomState.players as { id, name, state } (id)}
-			<Player {id} {name} {state} />
-		{/each}
+	<main class="relative h-full w-full bg-gray-900">
+		<!-- Phaser renders into this container -->
+		<div id={GAME_CONTAINER_ID} class="w-full h-full"></div>
 	</main>
 {/if}
+
