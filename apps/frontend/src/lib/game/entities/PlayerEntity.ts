@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { PlayerState } from '../../../types/player';
 import { NETWORK } from '../../constants/network';
+import { PHYSICS } from '../../constants/physics';
 
 // Color palettes for player states
 const COLORS = {
@@ -34,6 +35,18 @@ export class PlayerEntity {
 	// Snapshot buffer for remote players (replaces simple lerp)
 	private snapshotBuffer: PositionSnapshot[] = [];
 
+	// --- Local player visual smoothing ---
+	// The "true" physics position (set by reconciliation or local tick loop).
+	// The sprite may render at a slightly different position while the
+	// visual offset decays toward zero.
+	private physicsX: number = 0;
+	private physicsY: number = 0;
+
+	// Visual offset — the difference between where the sprite WAS visually
+	// and where it SHOULD be after a reconciliation snap. Decays each frame.
+	private visualOffsetX: number = 0;
+	private visualOffsetY: number = 0;
+
 	constructor(
 		scene: Phaser.Scene,
 		playerId: string,
@@ -51,6 +64,12 @@ export class PlayerEntity {
 		this.sprite = scene.add.rectangle(x, y, 40, 40, color);
 		this.sprite.setOrigin(0.5, 1); // Bottom-center for ground alignment
 
+		// Initialize physics position for local player
+		if (isLocalPlayer) {
+			this.physicsX = x;
+			this.physicsY = y;
+		}
+
 		// Seed the buffer with the initial state so there's something to interpolate toward
 		if (!isLocalPlayer && initialState) {
 			this.pushSnapshot({
@@ -65,16 +84,32 @@ export class PlayerEntity {
 	}
 
 	/**
-	 * Called by MainScene whenever a new server state arrives for this player.
+	 * Called by MainScene whenever new state is read from the store.
 	 *
-	 * Local player: snap sprite directly (prediction handles smoothness).
-	 * Remote player: push the state into the snapshot buffer with the current
-	 *               wall-clock time. The buffer is capped at SNAPSHOT_BUFFER_SIZE
-	 *               entries — old entries fall off the front automatically.
+	 * Local player: capture the visual offset (if a reconciliation snap
+	 *               just happened) and update the physics position.
+	 * Remote player: push the state into the snapshot buffer.
 	 */
 	updateFromServerState(state: PlayerState): void {
 		if (this.isLocalPlayer) {
-			this.sprite.setPosition(state.x, state.y);
+			// Calculate how far the sprite is from the new "truth".
+			// In normal frames (no reconciliation), this is ~0 because
+			// tickLocalPlayer() already advanced to a similar position.
+			// After reconciliation, this captures the snap distance.
+			const diffX = this.sprite.x - state.x;
+			const diffY = this.sprite.y - state.y;
+
+			if (Math.abs(diffX) > 0.5 || Math.abs(diffY) > 0.5) {
+				this.visualOffsetX = diffX;
+				this.visualOffsetY = diffY;
+			}
+
+			this.physicsX = state.x;
+			this.physicsY = state.y;
+			this.sprite.setPosition(
+				this.physicsX + this.visualOffsetX,
+				this.physicsY + this.visualOffsetY
+			);
 		} else {
 			const updateTime = state.lastUpdateTime ?? performance.now();
 			// Skip if we already processed this exact packet
@@ -93,15 +128,44 @@ export class PlayerEntity {
 	}
 
 	/**
+	 * Called by MainScene's tickLocalPlayer() to advance the local player's
+	 * physics position between server packets. Routes through the visual
+	 * offset system so reconciliation smoothing is preserved.
+	 */
+	updateLocalPhysicsPosition(x: number, y: number): void {
+		this.physicsX = x;
+		this.physicsY = y;
+		this.sprite.setPosition(
+			x + this.visualOffsetX,
+			y + this.visualOffsetY
+		);
+	}
+
+	/**
 	 * Called every Phaser frame by MainScene.
 	 *
-	 * Local player: nothing to do (position is already set in updateFromServerState).
-	 * Remote player: compute renderTime = now - INTERPOLATION_DELAY, then find
-	 *               the two snapshots that bracket renderTime and linearly
-	 *               interpolate between them.
+	 * Local player: decay the visual offset toward zero, re-render.
+	 * Remote player: compute renderTime = now - INTERPOLATION_DELAY, then
+	 *               interpolate between the two bracketing snapshots.
 	 */
 	update(): void {
-		if (this.isLocalPlayer) return;
+		if (this.isLocalPlayer) {
+			// Decay the visual offset each frame
+			this.visualOffsetX *= PHYSICS.RECONCILIATION_SMOOTHING_DECAY;
+			this.visualOffsetY *= PHYSICS.RECONCILIATION_SMOOTHING_DECAY;
+
+			// Snap to zero when negligible to avoid infinite micro-drift
+			if (Math.abs(this.visualOffsetX) < 0.5) this.visualOffsetX = 0;
+			if (Math.abs(this.visualOffsetY) < 0.5) this.visualOffsetY = 0;
+
+			// Re-render with decayed offset
+			this.sprite.setPosition(
+				this.physicsX + this.visualOffsetX,
+				this.physicsY + this.visualOffsetY
+			);
+			return;
+		}
+
 		if (this.snapshotBuffer.length === 0) return;
 
 		const renderTime = performance.now() - NETWORK.INTERPOLATION_DELAY;

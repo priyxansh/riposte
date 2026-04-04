@@ -114,11 +114,11 @@ export class MainScene extends Phaser.Scene {
         if (state.x !== currentState.x || state.y !== currentState.y) {
             updateLocalPlayerState(this.localPlayerId, state);
 
-            // Also update the sprite immediately so we don't wait for the
-            // next frame's store read to move the visual
+            // Update the entity's physics position through the offset system
+            // so reconciliation visual smoothing is preserved
             const entity = this.playerEntities.get(this.localPlayerId);
             if (entity) {
-                entity.getSprite().setPosition(state.x, state.y);
+                entity.updateLocalPhysicsPosition(state.x, state.y);
             }
         }
     }

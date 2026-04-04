@@ -5,5 +5,6 @@ export const PHYSICS = {
     JUMP_STRENGTH: -400.0, // pixels/s (negative = upward)
     GROUND_LEVEL: 500.0, // Y coordinate
     DEFAULT_SPEED: 200.0, // pixels/s
-    FIXED_STEP: 1.0 / 60.0 // seconds — MUST match backend FixedDeltaTime exactly
+    FIXED_STEP: 1.0 / 60.0, // seconds — MUST match backend FixedDeltaTime exactly
+    RECONCILIATION_SMOOTHING_DECAY: 0.85 // per-frame multiplier for visual offset decay
 } as const;
