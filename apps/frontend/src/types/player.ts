@@ -14,6 +14,7 @@ export type PlayerState = {
 	vx: number;
 	vy: number;
 	isGrounded: boolean;
+	lastUpdateTime?: number;
 };
 
 export type MoveDirection = 'left' | 'right' | 'jump';

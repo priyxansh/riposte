@@ -30,7 +30,8 @@ export const gameLoopHandler = (
 			y: player.state.y,
 			vx: player.state.vx,
 			vy: player.state.vy,
-			isGrounded: player.state.isGrounded
+			isGrounded: player.state.isGrounded,
+			lastUpdateTime: performance.now()
 		};
 
 		// For the local player, apply reconciliation
