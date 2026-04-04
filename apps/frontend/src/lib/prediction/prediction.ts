@@ -125,7 +125,11 @@ export function simulatePhysics(state: PlayerState, deltaTime: number): PlayerSt
 }
 
 /**
- * Reconcile: Take server state, then re-apply all unacknowledged inputs
+ * Reconcile: Take server state, then re-apply all unacknowledged inputs.
+ *
+ * Physics is stepped in exact FIXED_STEP intervals using an accumulator,
+ * mirroring the server's fixed timestep loop. This prevents floating-point
+ * drift between client prediction and server authority.
  */
 export function reconcile(
     serverState: PlayerState,
@@ -138,33 +142,42 @@ export function reconcile(
     let reconciledState = { ...serverState };
 
     // 3. Re-apply all pending (unacknowledged) inputs
-    // We must simulate the physics for the time passed between inputs
     if (pendingInputs.length > 0) {
         let lastTime = pendingInputs[0].timestamp;
         const now = performance.now();
+        let accumulator = 0;
 
         for (const input of pendingInputs) {
-            // Calculate delta time since the last input (in seconds)
-            // Guard against potential negative deltas or zero
+            // Time elapsed since the previous input (in seconds)
             const dt = Math.max(0, (input.timestamp - lastTime) / 1000);
 
-            // Apply the input (sets velocity)
-            reconciledState = applyInputToState(reconciledState, input.direction, input.keyState);
-
-            // Simulate movement for this duration
-            if (dt > 0) {
-                reconciledState = simulatePhysics(reconciledState, dt);
+            // Pour this time into the accumulator and step physics
+            // in exact FIXED_STEP chunks BEFORE applying this input.
+            // This simulates the physics that happened while the player
+            // was "between" pressing two keys.
+            accumulator += dt;
+            while (accumulator >= PHYSICS.FIXED_STEP) {
+                reconciledState = simulatePhysics(reconciledState, PHYSICS.FIXED_STEP);
+                accumulator -= PHYSICS.FIXED_STEP;
             }
+
+            // Now apply the input itself (sets velocity)
+            reconciledState = applyInputToState(reconciledState, input.direction, input.keyState);
 
             lastTime = input.timestamp;
         }
 
-        // Improve: Simulate from the last input until NOW
-        // This brings the state up to the current render frame
+        // Simulate from the last input until NOW to bring the state
+        // up to the current render frame
         const timeSinceLastInput = Math.max(0, (now - lastTime) / 1000);
-        if (timeSinceLastInput > 0) {
-            reconciledState = simulatePhysics(reconciledState, timeSinceLastInput);
+        accumulator += timeSinceLastInput;
+        while (accumulator >= PHYSICS.FIXED_STEP) {
+            reconciledState = simulatePhysics(reconciledState, PHYSICS.FIXED_STEP);
+            accumulator -= PHYSICS.FIXED_STEP;
         }
+        // Any sub-step remainder (< 16.6ms) is intentionally discarded.
+        // It's too small to cause visible drift and will be covered
+        // by the next reconciliation cycle.
     }
 
     return reconciledState;

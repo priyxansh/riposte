@@ -12,4 +12,12 @@ const (
 
 	// GroundLevel is the Y coordinate of the ground/floor
 	GroundLevel = 500.0
+
+	// DefaultSpeed is the horizontal movement speed (pixels/s)
+	DefaultSpeed = 200.0
+
+	// FixedDeltaTime is the exact physics step duration in seconds.
+	// Both server and client MUST use this identical value for all
+	// physics simulation to prevent floating-point drift.
+	FixedDeltaTime = 1.0 / 60.0
 )

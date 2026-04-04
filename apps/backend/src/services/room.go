@@ -200,41 +200,63 @@ func StartGameLoop(roomID string) error {
 		states := make([]*gametypes.PlayerSnapshot, 0, maxPlayers)
 
 		previousTime := time.Now()
+		var accumulator float64 // seconds of unprocessed physics time
 
 		for range ticker.C {
 			currentTime := time.Now()
-			deltaTime := currentTime.Sub(previousTime).Seconds() // in seconds (float64)
+			frameTime := currentTime.Sub(previousTime).Seconds()
 			previousTime = currentTime
+
+			// Cap frameTime to prevent a "spiral of death" if the server
+			// stalls for a long time. Without this cap,
+			// the accumulator would try to run hundreds of physics steps
+			// to catch up, making the stall even worse.
+			if frameTime > 0.1 { // max 100ms (6 steps)
+				frameTime = 0.1
+			}
+
+			accumulator += frameTime
 
 			// Reset slice length, keep capacity
 			states = states[:0]
 			lastProcessedInput := make(map[string]int)
 
-
 			room.DoLocked(func() {
-				// Update player positions based on velocity and deltaTime
+				// Run physics in exact FixedDeltaTime steps
+				for accumulator >= constants.FixedDeltaTime {
+					for _, player := range room.Players {
+						if player.Conn == nil || player.State == nil {
+							continue
+						}
+
+						// Apply gravity
+						player.State.VY += constants.Gravity * constants.FixedDeltaTime
+
+						// Enforce terminal velocity
+						if player.State.VY > constants.TerminalVelocity {
+							player.State.VY = constants.TerminalVelocity
+						}
+
+						player.State.X += player.State.VX * constants.FixedDeltaTime
+						player.State.Y += player.State.VY * constants.FixedDeltaTime
+
+						// Ground collision detection
+						if player.State.Y >= constants.GroundLevel {
+							player.State.Y = constants.GroundLevel
+							player.State.VY = 0
+							player.State.IsGrounded = true
+						} else {
+							player.State.IsGrounded = false
+						}
+					}
+
+					accumulator -= constants.FixedDeltaTime
+				}
+
+				// After all physics steps, snapshot every player's state for broadcast
 				for _, player := range room.Players {
 					if player.Conn == nil || player.State == nil {
 						continue
-					}
-					// Apply gravity
-					player.State.VY += constants.Gravity * deltaTime
-
-					// Enforce terminal velocity
-					if player.State.VY > constants.TerminalVelocity {
-						player.State.VY = constants.TerminalVelocity
-					}
-
-					player.State.X += player.State.VX * deltaTime
-					player.State.Y += player.State.VY * deltaTime
-
-					// Ground collision detection
-					if player.State.Y >= constants.GroundLevel {
-						player.State.Y = constants.GroundLevel
-						player.State.VY = 0
-						player.State.IsGrounded = true
-					} else {
-						player.State.IsGrounded = false
 					}
 
 					states = append(states, &gametypes.PlayerSnapshot{
@@ -242,18 +264,15 @@ func StartGameLoop(roomID string) error {
 						State:          player.State,
 					})
 
-					// Track last processed input for this player
 					lastProcessedInput[player.Metadata.ID] = player.LastProcessedInput
-
 				}
 			})
 
 			payload := &eventpayloads.GameLoopResponse{
-				RoomID:            roomID,
-				PlayerStates:      states,
+				RoomID:             roomID,
+				PlayerStates:       states,
 				LastProcessedInput: lastProcessedInput,
 			}
-
 
 			if err := BroadcastToRoom(roomID, events.GameLoop, payload); err != nil {
 				log.Printf("BroadcastToRoom error: %v", err)

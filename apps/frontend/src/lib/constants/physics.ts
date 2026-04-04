@@ -4,5 +4,6 @@ export const PHYSICS = {
     TERMINAL_VELOCITY: 600.0, // pixels/s
     JUMP_STRENGTH: -400.0, // pixels/s (negative = upward)
     GROUND_LEVEL: 500.0, // Y coordinate
-    DEFAULT_SPEED: 200.0 // pixels/s
+    DEFAULT_SPEED: 200.0, // pixels/s
+    FIXED_STEP: 1.0 / 60.0 // seconds — MUST match backend FixedDeltaTime exactly
 } as const;
