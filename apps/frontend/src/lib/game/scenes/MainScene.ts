@@ -1,12 +1,18 @@
 import Phaser from 'phaser';
-import { getRoomState } from '$lib/stores/room.svelte';
+import { getRoomState, getLocalPlayerState, updateLocalPlayerState } from '$lib/stores/room.svelte';
 import { PHYSICS } from '$lib/constants/physics';
+import { simulatePhysics } from '$lib/prediction/prediction';
 import { PlayerEntity } from '../entities/PlayerEntity';
 
 export class MainScene extends Phaser.Scene {
     private playerEntities: Map<string, PlayerEntity> = new Map();
     private groundLine: Phaser.GameObjects.Graphics | null = null;
     private localPlayerId: string | null = null;
+
+    // Accumulator for the local player's per-frame physics tick.
+    // This ensures we step physics in exact FIXED_STEP chunks even
+    // though Phaser's update() fires at the monitor's variable refresh rate.
+    private localAccumulator: number = 0;
 
     constructor() {
         super({ key: 'MainScene' });
@@ -27,7 +33,7 @@ export class MainScene extends Phaser.Scene {
         console.log('[MainScene] Scene created');
     }
 
-    update(): void {
+    update(_time: number, delta: number): void {
         const roomState = getRoomState();
         if (!roomState) return;
 
@@ -63,11 +69,56 @@ export class MainScene extends Phaser.Scene {
             entity.update();
         }
 
+        // --- Local player physics tick ---
+        // Advance the local player's physics every visual frame so movement
+        // feels responsive at the monitor's full refresh rate (e.g. 144Hz),
+        // rather than being locked to the server's 60Hz packet rate.
+        if (this.localPlayerId) {
+            this.tickLocalPlayer(delta);
+        }
+
         // Remove entities for players who left
         for (const [playerId, entity] of this.playerEntities) {
             if (!currentPlayerIds.has(playerId)) {
                 entity.destroy();
                 this.playerEntities.delete(playerId);
+            }
+        }
+    }
+
+    /**
+     * Advance the local player's physics by `delta` ms using a fixed-step
+     * accumulator. This is purely a visual extrapolation — when the next
+     * server packet arrives, reconcile() will overwrite this state with
+     * the authoritative result, correcting any drift.
+     */
+    private tickLocalPlayer(delta: number): void {
+        if (!this.localPlayerId) return;
+
+        const currentState = getLocalPlayerState(this.localPlayerId);
+        if (!currentState) return;
+
+        // delta is in milliseconds from Phaser; convert to seconds
+        const dt = Math.min(delta / 1000, 0.1); // cap to prevent spiral of death
+
+        this.localAccumulator += dt;
+
+        let state = { ...currentState };
+
+        while (this.localAccumulator >= PHYSICS.FIXED_STEP) {
+            state = simulatePhysics(state, PHYSICS.FIXED_STEP);
+            this.localAccumulator -= PHYSICS.FIXED_STEP;
+        }
+
+        // Only write back if physics actually stepped
+        if (state.x !== currentState.x || state.y !== currentState.y) {
+            updateLocalPlayerState(this.localPlayerId, state);
+
+            // Also update the sprite immediately so we don't wait for the
+            // next frame's store read to move the visual
+            const entity = this.playerEntities.get(this.localPlayerId);
+            if (entity) {
+                entity.getSprite().setPosition(state.x, state.y);
             }
         }
     }
@@ -81,4 +132,3 @@ export class MainScene extends Phaser.Scene {
         console.log('[MainScene] Scene shutdown');
     }
 }
-
