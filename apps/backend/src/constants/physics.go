@@ -20,4 +20,19 @@ const (
 	// Both server and client MUST use this identical value for all
 	// physics simulation to prevent floating-point drift.
 	FixedDeltaTime = 1.0 / 60.0
+
+	// DashSpeed is the horizontal speed during a dash (pixels/s)
+	DashSpeed = 600.0
+
+	// DashDuration is how long the dash lasts in seconds
+	DashDuration = 0.12
+
+	// DashCooldownTime is the minimum time between dashes in seconds
+	DashCooldownTime = 0.5
+
+	// DownDashSpeed is the downward plunge speed (pixels/s)
+	DownDashSpeed = 800.0
+
+	// DownDashDuration is the maximum duration of a down-dash before timeout
+	DownDashDuration = 0.25
 )

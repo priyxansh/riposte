@@ -203,6 +203,14 @@ func StartGameLoop(roomID string) error {
 		var accumulator float64 // seconds of unprocessed physics time
 
 		for range ticker.C {
+			mu.Lock()
+			_, exists := rooms[roomID]
+			mu.Unlock()
+			if !exists {
+				log.Printf("Game loop for room %s stopping: room deleted", roomID)
+				return
+			}
+
 			currentTime := time.Now()
 			frameTime := currentTime.Sub(previousTime).Seconds()
 			previousTime = currentTime
@@ -229,24 +237,87 @@ func StartGameLoop(roomID string) error {
 							continue
 						}
 
-						// Apply gravity
-						player.State.VY += constants.Gravity * constants.FixedDeltaTime
+						s := player.State
 
-						// Enforce terminal velocity
-						if player.State.VY > constants.TerminalVelocity {
-							player.State.VY = constants.TerminalVelocity
+						// --- Dash cooldown ---
+						if s.DashCooldown > 0 {
+							s.DashCooldown -= constants.FixedDeltaTime
+							if s.DashCooldown < 0 {
+								s.DashCooldown = 0
+							}
 						}
 
-						player.State.X += player.State.VX * constants.FixedDeltaTime
-						player.State.Y += player.State.VY * constants.FixedDeltaTime
+						// --- Dash physics ---
+						if s.IsDashing {
+							// Horizontal dash: force velocity, skip gravity
+							s.VX = float64(s.FacingDirection) * constants.DashSpeed
+							s.VY = 0
+							s.DashTimer -= constants.FixedDeltaTime
+							if s.DashTimer <= 0 {
+								s.IsDashing = false
+								s.DashTimer = 0
+								if s.IsHoldingLeft && !s.IsHoldingRight {
+									s.VX = -float64(constants.DefaultSpeed)
+								} else if s.IsHoldingRight && !s.IsHoldingLeft {
+									s.VX = float64(constants.DefaultSpeed)
+								} else {
+									s.VX = 0
+								}
+							}
+						} else if s.IsDownDashing {
+							// Downward plunge: force velocity, skip gravity
+							s.VX = 0
+							s.VY = constants.DownDashSpeed
+							s.DashTimer -= constants.FixedDeltaTime
+							if s.DashTimer <= 0 {
+								s.IsDownDashing = false
+								s.DashTimer = 0
+								s.VY = 0
+								if s.IsHoldingLeft && !s.IsHoldingRight {
+									s.VX = -float64(constants.DefaultSpeed)
+								} else if s.IsHoldingRight && !s.IsHoldingLeft {
+									s.VX = float64(constants.DefaultSpeed)
+								} else {
+									s.VX = 0
+								}
+							}
+						} else {
+							// Normal physics: apply gravity
+							s.VY += constants.Gravity * constants.FixedDeltaTime
+
+							// Enforce terminal velocity
+							if s.VY > constants.TerminalVelocity {
+								s.VY = constants.TerminalVelocity
+							}
+						}
+
+						// Update position
+						s.X += s.VX * constants.FixedDeltaTime
+						s.Y += s.VY * constants.FixedDeltaTime
 
 						// Ground collision detection
-						if player.State.Y >= constants.GroundLevel {
-							player.State.Y = constants.GroundLevel
-							player.State.VY = 0
-							player.State.IsGrounded = true
+						if s.Y >= constants.GroundLevel {
+							s.Y = constants.GroundLevel
+							s.VY = 0
+							s.IsGrounded = true
+
+							// End down-dash on landing
+							if s.IsDownDashing {
+								s.IsDownDashing = false
+								s.DashTimer = 0
+								if s.IsHoldingLeft && !s.IsHoldingRight {
+									s.VX = -float64(constants.DefaultSpeed)
+								} else if s.IsHoldingRight && !s.IsHoldingLeft {
+									s.VX = float64(constants.DefaultSpeed)
+								} else {
+									s.VX = 0
+								}
+							}
+
+							// Reset air dash on landing
+							s.HasAirDash = true
 						} else {
-							player.State.IsGrounded = false
+							s.IsGrounded = false
 						}
 					}
 
@@ -288,16 +359,16 @@ func AssignInitialStates(room *gametypes.Room) {
 
 	switch room.Mode {
 	case "1v1":
-		initialStates = constants.InitialStates1v1
+		initialStates = constants.NewInitialStates1v1()
 	case "2v2":
-		initialStates = constants.InitialStates2v2
+		initialStates = constants.NewInitialStates2v2()
 	}
 
 	for i, player := range room.Players {
 		if i < len(initialStates) {
 			player.State = initialStates[i]
 		} else {
-			player.State = &gametypes.PlayerState{X: 0, Y: 0, VX: 0, VY: 0}
+			player.State = &gametypes.PlayerState{X: 0, Y: 0, VX: 0, VY: 0, FacingDirection: 1, HasAirDash: true}
 		}
 	}
 }
@@ -320,33 +391,83 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 			// Track the sequence number of this input
 			player.LastProcessedInput = payload.SequenceNumber
 
+			s := player.State
+
 			switch payload.Direction {
 			case "left":
 				if payload.KeyState == "pressed" {
-					player.State.VX = -float64(constants.DefaultSpeed)
+					s.IsHoldingLeft = true
+					s.FacingDirection = -1
+					if !s.IsDashing && !s.IsDownDashing {
+						s.VX = -float64(constants.DefaultSpeed)
+					}
 				} else {
-					player.State.VX = 0
+					s.IsHoldingLeft = false
+					if !s.IsDashing && !s.IsDownDashing {
+						if s.IsHoldingRight {
+							s.VX = float64(constants.DefaultSpeed)
+							s.FacingDirection = 1
+						} else {
+							s.VX = 0
+						}
+					}
 				}
 			case "right":
 				if payload.KeyState == "pressed" {
-					player.State.VX = float64(constants.DefaultSpeed)
+					s.IsHoldingRight = true
+					s.FacingDirection = 1
+					if !s.IsDashing && !s.IsDownDashing {
+						s.VX = float64(constants.DefaultSpeed)
+					}
 				} else {
-					player.State.VX = 0
+					s.IsHoldingRight = false
+					if !s.IsDashing && !s.IsDownDashing {
+						if s.IsHoldingLeft {
+							s.VX = -float64(constants.DefaultSpeed)
+							s.FacingDirection = -1
+						} else {
+							s.VX = 0
+						}
+					}
 				}
 			case "jump":
 				if payload.KeyState == "pressed" {
-					// Only allow jump if player is grounded
-					if player.State.IsGrounded {
-						player.State.VY = constants.JumpStrength
+					// Only allow jump if player is grounded and not dashing
+					if s.IsGrounded && !s.IsDashing && !s.IsDownDashing {
+						s.VY = constants.JumpStrength
 					}
 				} else if payload.KeyState == "released" {
-					// Variable jump: Cut velocity if still rising
-					if player.State.VY < 0 {
-						player.State.VY *= 0.5
+					// Variable jump: Cut velocity if still rising (and not dashing)
+					if s.VY < 0 && !s.IsDashing {
+						s.VY *= 0.5
 					}
 				}
+			case "dash":
+				if payload.KeyState == "pressed" && !s.IsDashing && !s.IsDownDashing && s.DashCooldown <= 0 {
+					if s.IsGrounded || s.HasAirDash {
+						s.IsDashing = true
+						s.DashTimer = constants.DashDuration
+						s.DashCooldown = constants.DashCooldownTime
+						s.VX = float64(s.FacingDirection) * constants.DashSpeed
+						s.VY = 0
+						if !s.IsGrounded {
+							s.HasAirDash = false
+						}
+					}
+				}
+			case "downdash":
+				if payload.KeyState == "pressed" && !s.IsGrounded && !s.IsDashing && !s.IsDownDashing && s.DashCooldown <= 0 {
+					s.IsDownDashing = true
+					s.DashTimer = constants.DownDashDuration
+					s.DashCooldown = constants.DashCooldownTime
+					s.VX = 0
+					s.VY = constants.DownDashSpeed
+					s.HasAirDash = false
+				}
 			default:
-				player.State.VX = 0
+				if !s.IsDashing && !s.IsDownDashing {
+					s.VX = 0
+				}
 			}
 
 			break

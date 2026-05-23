@@ -17,11 +17,19 @@ type PlayerMetadata struct {
 }
 
 type PlayerState struct {
-	X          float64 `json:"x"`
-	Y          float64 `json:"y"`
-	VX         float64 `json:"vx"` // velocity x
-	VY         float64 `json:"vy"` // velocity y
-	IsGrounded bool    `json:"isGrounded"`
+	X               float64 `json:"x"`
+	Y               float64 `json:"y"`
+	VX              float64 `json:"vx"`              // velocity x
+	VY              float64 `json:"vy"`              // velocity y
+	IsGrounded      bool    `json:"isGrounded"`
+	FacingDirection int     `json:"facingDirection"` // 1 = Right, -1 = Left
+	IsDashing       bool    `json:"isDashing"`
+	IsDownDashing   bool    `json:"isDownDashing"`
+	DashTimer       float64 `json:"dashTimer"`
+	DashCooldown    float64 `json:"dashCooldown"`
+	HasAirDash      bool    `json:"hasAirDash"`
+	IsHoldingLeft   bool    `json:"isHoldingLeft"`
+	IsHoldingRight  bool    `json:"isHoldingRight"`
 }
 
 type PlayerSnapshot struct {
