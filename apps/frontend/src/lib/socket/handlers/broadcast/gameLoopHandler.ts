@@ -31,6 +31,14 @@ export const gameLoopHandler = (
 			vx: player.state.vx,
 			vy: player.state.vy,
 			isGrounded: player.state.isGrounded,
+			facingDirection: player.state.facingDirection ?? 1,
+			isDashing: player.state.isDashing ?? false,
+			isDownDashing: player.state.isDownDashing ?? false,
+			dashTimer: player.state.dashTimer ?? 0,
+			dashCooldown: player.state.dashCooldown ?? 0,
+			hasAirDash: player.state.hasAirDash ?? true,
+			isHoldingLeft: player.state.isHoldingLeft ?? false,
+			isHoldingRight: player.state.isHoldingRight ?? false,
 			lastUpdateTime: performance.now()
 		};
 

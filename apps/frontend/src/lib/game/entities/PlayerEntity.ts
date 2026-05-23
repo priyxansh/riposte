@@ -12,8 +12,18 @@ const COLORS = {
 	REMOTE: {
 		GROUNDED: 0x4299e1, // Blue
 		AIRBORNE: 0x9f7aea // Purple
-	}
+	},
+	DASH: 0x00ffff, // Cyan — horizontal / air dash
+	DOWN_DASH: 0xffd700, // Gold — downward plunge
+	FACING_POINTER: 0x1a202c // Dark accent for facing indicator
 } as const;
+
+// Player body dimensions
+const BODY_W = 40;
+const BODY_H = 40;
+// Facing indicator dimensions
+const POINTER_W = 6;
+const POINTER_H = 14;
 
 // A timestamped position snapshot received from the server
 type PositionSnapshot = {
@@ -21,13 +31,24 @@ type PositionSnapshot = {
 	x: number;
 	y: number;
 	isGrounded: boolean;
+	facingDirection: number;
+	isDashing: boolean;
+	isDownDashing: boolean;
+	hasAirDash: boolean;
 };
 
 export class PlayerEntity {
 	private scene: Phaser.Scene;
 	private sprite: Phaser.GameObjects.Rectangle;
+	private facingPointer: Phaser.GameObjects.Rectangle;
 	private playerId: string;
 	private isLocalPlayer: boolean;
+
+	// Current visual state (used for rendering decisions)
+	private currentFacing: number = 1;
+	private currentIsDashing: boolean = false;
+	private currentIsDownDashing: boolean = false;
+	private currentHasAirDash: boolean = true;
 
 	// Tracks the last server packet we processed to prevent duplicating snapshots on every frame
 	private lastProcessedUpdate: number = 0;
@@ -61,8 +82,14 @@ export class PlayerEntity {
 
 		const x = initialState?.x ?? 400;
 		const y = initialState?.y ?? 500;
-		this.sprite = scene.add.rectangle(x, y, 40, 40, color);
+		this.sprite = scene.add.rectangle(x, y, BODY_W, BODY_H, color);
 		this.sprite.setOrigin(0.5, 1); // Bottom-center for ground alignment
+
+		// Facing direction indicator — a small dark rectangle on the leading edge
+		this.currentFacing = initialState?.facingDirection ?? 1;
+		this.facingPointer = scene.add.rectangle(0, 0, POINTER_W, POINTER_H, COLORS.FACING_POINTER);
+		this.facingPointer.setOrigin(0.5, 0.5);
+		this.updatePointerPosition(x, y);
 
 		// Initialize physics position for local player
 		if (isLocalPlayer) {
@@ -76,7 +103,11 @@ export class PlayerEntity {
 				time: performance.now(),
 				x,
 				y,
-				isGrounded: initialState.isGrounded
+				isGrounded: initialState.isGrounded,
+				facingDirection: initialState.facingDirection ?? 1,
+				isDashing: initialState.isDashing ?? false,
+				isDownDashing: initialState.isDownDashing ?? false,
+				hasAirDash: initialState.hasAirDash ?? true
 			});
 		}
 
@@ -110,6 +141,12 @@ export class PlayerEntity {
 				this.physicsX + this.visualOffsetX,
 				this.physicsY + this.visualOffsetY
 			);
+
+			// Update visual state
+			this.currentFacing = state.facingDirection;
+			this.currentIsDashing = state.isDashing;
+			this.currentIsDownDashing = state.isDownDashing;
+			this.currentHasAirDash = state.hasAirDash;
 		} else {
 			const updateTime = state.lastUpdateTime ?? performance.now();
 			// Skip if we already processed this exact packet
@@ -120,11 +157,15 @@ export class PlayerEntity {
 				time: updateTime,
 				x: state.x,
 				y: state.y,
-				isGrounded: state.isGrounded
+				isGrounded: state.isGrounded,
+				facingDirection: state.facingDirection ?? 1,
+				isDashing: state.isDashing ?? false,
+				isDownDashing: state.isDownDashing ?? false,
+				hasAirDash: state.hasAirDash ?? true
 			});
 		}
 
-		this.updateColor(state.isGrounded);
+		this.updateVisuals(state.isGrounded);
 	}
 
 	/**
@@ -136,6 +177,10 @@ export class PlayerEntity {
 		this.physicsX = x;
 		this.physicsY = y;
 		this.sprite.setPosition(
+			x + this.visualOffsetX,
+			y + this.visualOffsetY
+		);
+		this.updatePointerPosition(
 			x + this.visualOffsetX,
 			y + this.visualOffsetY
 		);
@@ -159,10 +204,10 @@ export class PlayerEntity {
 			if (Math.abs(this.visualOffsetY) < 0.5) this.visualOffsetY = 0;
 
 			// Re-render with decayed offset
-			this.sprite.setPosition(
-				this.physicsX + this.visualOffsetX,
-				this.physicsY + this.visualOffsetY
-			);
+			const renderX = this.physicsX + this.visualOffsetX;
+			const renderY = this.physicsY + this.visualOffsetY;
+			this.sprite.setPosition(renderX, renderY);
+			this.updatePointerPosition(renderX, renderY);
 			return;
 		}
 
@@ -174,7 +219,12 @@ export class PlayerEntity {
 		if (this.snapshotBuffer.length === 1 || renderTime <= this.snapshotBuffer[0].time) {
 			const snap = this.snapshotBuffer[0];
 			this.sprite.setPosition(snap.x, snap.y);
-			this.updateColor(snap.isGrounded);
+			this.updatePointerPosition(snap.x, snap.y);
+			this.currentFacing = snap.facingDirection;
+			this.currentIsDashing = snap.isDashing;
+			this.currentIsDownDashing = snap.isDownDashing;
+			this.currentHasAirDash = snap.hasAirDash;
+			this.updateVisuals(snap.isGrounded);
 			return;
 		}
 
@@ -183,7 +233,12 @@ export class PlayerEntity {
 		const newest = this.snapshotBuffer[this.snapshotBuffer.length - 1];
 		if (renderTime >= newest.time) {
 			this.sprite.setPosition(newest.x, newest.y);
-			this.updateColor(newest.isGrounded);
+			this.updatePointerPosition(newest.x, newest.y);
+			this.currentFacing = newest.facingDirection;
+			this.currentIsDashing = newest.isDashing;
+			this.currentIsDownDashing = newest.isDownDashing;
+			this.currentHasAirDash = newest.hasAirDash;
+			this.updateVisuals(newest.isGrounded);
 			return;
 		}
 
@@ -211,11 +266,16 @@ export class PlayerEntity {
 		const interpolatedX = before.x + t * (after.x - before.x);
 		const interpolatedY = before.y + t * (after.y - before.y);
 
-		// Use the closer snapshot's grounded state (avoids mid-air color flicker)
-		const isGrounded = t < 0.5 ? before.isGrounded : after.isGrounded;
+		// Use the closer snapshot's state (avoids mid-action visual flicker)
+		const snap = t < 0.5 ? before : after;
+		this.currentFacing = snap.facingDirection;
+		this.currentIsDashing = snap.isDashing;
+		this.currentIsDownDashing = snap.isDownDashing;
+		this.currentHasAirDash = snap.hasAirDash;
 
 		this.sprite.setPosition(interpolatedX, interpolatedY);
-		this.updateColor(isGrounded);
+		this.updatePointerPosition(interpolatedX, interpolatedY);
+		this.updateVisuals(snap.isGrounded);
 	}
 
 	// ---------------------------------------------------------------------------
@@ -236,6 +296,7 @@ export class PlayerEntity {
 
 	destroy(): void {
 		console.log(`[PlayerEntity] Destroying player: ${this.playerId}`);
+		this.facingPointer.destroy();
 		this.sprite.destroy();
 	}
 
@@ -250,9 +311,47 @@ export class PlayerEntity {
 		}
 	}
 
-	private updateColor(isGrounded: boolean): void {
-		const palette = this.isLocalPlayer ? COLORS.LOCAL : COLORS.REMOTE;
-		const color = isGrounded ? palette.GROUNDED : palette.AIRBORNE;
+	/**
+	 * Position the facing pointer on the leading edge of the player rectangle.
+	 * The sprite uses origin (0.5, 1) — bottom-center — so:
+	 *   left edge  = spriteX - BODY_W/2
+	 *   right edge = spriteX + BODY_W/2
+	 *   vertical center of the body = spriteY - BODY_H/2
+	 */
+	private updatePointerPosition(spriteX: number, spriteY: number): void {
+		const edgeX = this.currentFacing === 1
+			? spriteX + BODY_W / 2 - POINTER_W / 2
+			: spriteX - BODY_W / 2 + POINTER_W / 2;
+		const centerY = spriteY - BODY_H / 2;
+		this.facingPointer.setPosition(edgeX, centerY);
+	}
+
+	/**
+	 * Update fill color and alpha based on dash state, grounded state,
+	 * and whether the air dash has been used.
+	 */
+	private updateVisuals(isGrounded: boolean): void {
+		let color: number;
+
+		if (this.currentIsDownDashing) {
+			color = COLORS.DOWN_DASH;
+		} else if (this.currentIsDashing) {
+			color = COLORS.DASH;
+		} else {
+			const palette = this.isLocalPlayer ? COLORS.LOCAL : COLORS.REMOTE;
+			color = isGrounded ? palette.GROUNDED : palette.AIRBORNE;
+		}
+
 		this.sprite.setFillStyle(color);
+
+		// Slightly dim the player when airborne and air dash is spent
+		if (!isGrounded && !this.currentHasAirDash && !this.currentIsDashing && !this.currentIsDownDashing) {
+			this.sprite.setAlpha(0.7);
+		} else {
+			this.sprite.setAlpha(1);
+		}
+
+		// Update pointer position with current sprite coordinates
+		this.updatePointerPosition(this.sprite.x, this.sprite.y);
 	}
 }

@@ -52,7 +52,7 @@ export function acknowledgeInputs(lastProcessedSequence: number): void {
 
 /**
  * Apply an input to local predicted state
- * This mirrors the server's MovePlayer logic
+ * This mirrors the server's MovePlayer logic EXACTLY
  */
 export function applyInputToState(
     state: PlayerState,
@@ -64,28 +64,77 @@ export function applyInputToState(
     switch (direction) {
         case 'left':
             if (keyState === 'pressed') {
-                newState.vx = -PHYSICS.DEFAULT_SPEED;
+                newState.isHoldingLeft = true;
+                newState.facingDirection = -1;
+                if (!newState.isDashing && !newState.isDownDashing) {
+                    newState.vx = -PHYSICS.DEFAULT_SPEED;
+                }
             } else {
-                newState.vx = 0;
+                newState.isHoldingLeft = false;
+                if (!newState.isDashing && !newState.isDownDashing) {
+                    if (newState.isHoldingRight) {
+                        newState.vx = PHYSICS.DEFAULT_SPEED;
+                        newState.facingDirection = 1;
+                    } else {
+                        newState.vx = 0;
+                    }
+                }
             }
             break;
         case 'right':
             if (keyState === 'pressed') {
-                newState.vx = PHYSICS.DEFAULT_SPEED;
+                newState.isHoldingRight = true;
+                newState.facingDirection = 1;
+                if (!newState.isDashing && !newState.isDownDashing) {
+                    newState.vx = PHYSICS.DEFAULT_SPEED;
+                }
             } else {
-                newState.vx = 0;
+                newState.isHoldingRight = false;
+                if (!newState.isDashing && !newState.isDownDashing) {
+                    if (newState.isHoldingLeft) {
+                        newState.vx = -PHYSICS.DEFAULT_SPEED;
+                        newState.facingDirection = -1;
+                    } else {
+                        newState.vx = 0;
+                    }
+                }
             }
             break;
         case 'jump':
             if (keyState === 'pressed') {
-                if (newState.isGrounded) {
+                // Only allow jump if grounded and not dashing
+                if (newState.isGrounded && !newState.isDashing && !newState.isDownDashing) {
                     newState.vy = PHYSICS.JUMP_STRENGTH;
                 }
             } else if (keyState === 'released') {
-                // Variable jump: Cut velocity if still rising
-                if (newState.vy < 0) {
+                // Variable jump: Cut velocity if still rising (and not dashing)
+                if (newState.vy < 0 && !newState.isDashing) {
                     newState.vy *= 0.5;
                 }
+            }
+            break;
+        case 'dash':
+            if (keyState === 'pressed' && !newState.isDashing && !newState.isDownDashing && newState.dashCooldown <= 0) {
+                if (newState.isGrounded || newState.hasAirDash) {
+                    newState.isDashing = true;
+                    newState.dashTimer = PHYSICS.DASH_DURATION;
+                    newState.dashCooldown = PHYSICS.DASH_COOLDOWN_TIME;
+                    newState.vx = newState.facingDirection * PHYSICS.DASH_SPEED;
+                    newState.vy = 0;
+                    if (!newState.isGrounded) {
+                        newState.hasAirDash = false;
+                    }
+                }
+            }
+            break;
+        case 'downdash':
+            if (keyState === 'pressed' && !newState.isGrounded && !newState.isDashing && !newState.isDownDashing && newState.dashCooldown <= 0) {
+                newState.isDownDashing = true;
+                newState.dashTimer = PHYSICS.DOWN_DASH_DURATION;
+                newState.dashCooldown = PHYSICS.DASH_COOLDOWN_TIME;
+                newState.vx = 0;
+                newState.vy = PHYSICS.DOWN_DASH_SPEED;
+                newState.hasAirDash = false;
             }
             break;
     }
@@ -95,17 +144,61 @@ export function applyInputToState(
 
 /**
  * Simulate physics for a given deltaTime (in seconds)
- * This mirrors the server's game loop physics
+ * This mirrors the server's game loop physics EXACTLY
  */
 export function simulatePhysics(state: PlayerState, deltaTime: number): PlayerState {
     const newState = { ...state };
 
-    // Apply gravity
-    newState.vy += PHYSICS.GRAVITY * deltaTime;
+    // --- Dash cooldown ---
+    if (newState.dashCooldown > 0) {
+        newState.dashCooldown -= deltaTime;
+        if (newState.dashCooldown < 0) {
+            newState.dashCooldown = 0;
+        }
+    }
 
-    // Enforce terminal velocity
-    if (newState.vy > PHYSICS.TERMINAL_VELOCITY) {
-        newState.vy = PHYSICS.TERMINAL_VELOCITY;
+    // --- Dash physics ---
+    if (newState.isDashing) {
+        // Horizontal dash: force velocity, skip gravity
+        newState.vx = newState.facingDirection * PHYSICS.DASH_SPEED;
+        newState.vy = 0;
+        newState.dashTimer -= deltaTime;
+        if (newState.dashTimer <= 0) {
+            newState.isDashing = false;
+            newState.dashTimer = 0;
+            if (newState.isHoldingLeft && !newState.isHoldingRight) {
+                newState.vx = -PHYSICS.DEFAULT_SPEED;
+            } else if (newState.isHoldingRight && !newState.isHoldingLeft) {
+                newState.vx = PHYSICS.DEFAULT_SPEED;
+            } else {
+                newState.vx = 0;
+            }
+        }
+    } else if (newState.isDownDashing) {
+        // Downward plunge: force velocity, skip gravity
+        newState.vx = 0;
+        newState.vy = PHYSICS.DOWN_DASH_SPEED;
+        newState.dashTimer -= deltaTime;
+        if (newState.dashTimer <= 0) {
+            newState.isDownDashing = false;
+            newState.dashTimer = 0;
+            newState.vy = 0;
+            if (newState.isHoldingLeft && !newState.isHoldingRight) {
+                newState.vx = -PHYSICS.DEFAULT_SPEED;
+            } else if (newState.isHoldingRight && !newState.isHoldingLeft) {
+                newState.vx = PHYSICS.DEFAULT_SPEED;
+            } else {
+                newState.vx = 0;
+            }
+        }
+    } else {
+        // Normal physics: apply gravity
+        newState.vy += PHYSICS.GRAVITY * deltaTime;
+
+        // Enforce terminal velocity
+        if (newState.vy > PHYSICS.TERMINAL_VELOCITY) {
+            newState.vy = PHYSICS.TERMINAL_VELOCITY;
+        }
     }
 
     // Update position
@@ -117,6 +210,22 @@ export function simulatePhysics(state: PlayerState, deltaTime: number): PlayerSt
         newState.y = PHYSICS.GROUND_LEVEL;
         newState.vy = 0;
         newState.isGrounded = true;
+
+        // End down-dash on landing
+        if (newState.isDownDashing) {
+            newState.isDownDashing = false;
+            newState.dashTimer = 0;
+            if (newState.isHoldingLeft && !newState.isHoldingRight) {
+                newState.vx = -PHYSICS.DEFAULT_SPEED;
+            } else if (newState.isHoldingRight && !newState.isHoldingLeft) {
+                newState.vx = PHYSICS.DEFAULT_SPEED;
+            } else {
+                newState.vx = 0;
+            }
+        }
+
+        // Reset air dash on landing
+        newState.hasAirDash = true;
     } else {
         newState.isGrounded = false;
     }
@@ -175,7 +284,7 @@ export function reconcile(
             reconciledState = simulatePhysics(reconciledState, PHYSICS.FIXED_STEP);
             accumulator -= PHYSICS.FIXED_STEP;
         }
-        // Any sub-step remainder (< 16.6ms) is intentionally discarded.
+        // Any sub-step remainder (<16.6ms) is intentionally discarded.
         // It's too small to cause visible drift and will be covered
         // by the next reconciliation cycle.
     }
@@ -191,3 +300,4 @@ export function resetPrediction(): void {
     pendingInputs.length = 0;
     predictedVX = 0;
 }
+

@@ -14,8 +14,17 @@ export type PlayerState = {
 	vx: number;
 	vy: number;
 	isGrounded: boolean;
+	facingDirection: number; // 1 = Right, -1 = Left
+	isDashing: boolean;
+	isDownDashing: boolean;
+	dashTimer: number;
+	dashCooldown: number;
+	hasAirDash: boolean;
+	isHoldingLeft: boolean;
+	isHoldingRight: boolean;
 	lastUpdateTime?: number;
 };
 
-export type MoveDirection = 'left' | 'right' | 'jump';
+export type MoveDirection = 'left' | 'right' | 'jump' | 'dash' | 'downdash';
 export type KeyState = 'pressed' | 'released';
+

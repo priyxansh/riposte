@@ -104,14 +104,17 @@ export class MainScene extends Phaser.Scene {
         this.localAccumulator += dt;
 
         let state = { ...currentState };
+        let stepped = false;
 
         while (this.localAccumulator >= PHYSICS.FIXED_STEP) {
             state = simulatePhysics(state, PHYSICS.FIXED_STEP);
             this.localAccumulator -= PHYSICS.FIXED_STEP;
+            stepped = true;
         }
 
-        // Only write back if physics actually stepped
-        if (state.x !== currentState.x || state.y !== currentState.y) {
+        // Write back whenever physics stepped — dash timers/cooldowns
+        // change every tick even if position hasn't moved yet
+        if (stepped) {
             updateLocalPlayerState(this.localPlayerId, state);
 
             // Update the entity's physics position through the offset system

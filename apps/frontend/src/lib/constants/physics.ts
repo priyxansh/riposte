@@ -6,5 +6,11 @@ export const PHYSICS = {
     GROUND_LEVEL: 500.0, // Y coordinate
     DEFAULT_SPEED: 200.0, // pixels/s
     FIXED_STEP: 1.0 / 60.0, // seconds — MUST match backend FixedDeltaTime exactly
-    RECONCILIATION_SMOOTHING_DECAY: 0.85 // per-frame multiplier for visual offset decay
+    RECONCILIATION_SMOOTHING_DECAY: 0.85, // per-frame multiplier for visual offset decay
+    DASH_SPEED: 600.0, // pixels/s
+    DASH_DURATION: 0.12, // seconds
+    DASH_COOLDOWN_TIME: 0.5, // seconds
+    DOWN_DASH_SPEED: 800.0, // pixels/s
+    DOWN_DASH_DURATION: 0.25, // seconds
 } as const;
+
