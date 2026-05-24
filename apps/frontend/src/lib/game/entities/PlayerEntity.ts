@@ -16,6 +16,8 @@ const COLORS = {
 	DASH: 0x00ffff, // Cyan — horizontal / air dash
 	DOWN_DASH: 0xffd700, // Gold — downward plunge
 	BLOCK: 0x90cdf4, // Light blue — blocking stance
+	ATTACK: 0xff4444, // Red — attacking
+	ATTACK_HITBOX: 0xff0000, // Bright red — attack hitbox overlay
 	FACING_POINTER: 0x1a202c // Dark accent for facing indicator
 } as const;
 
@@ -37,12 +39,14 @@ type PositionSnapshot = {
 	isDownDashing: boolean;
 	hasAirDash: boolean;
 	isBlocking: boolean;
+	isAttacking: boolean;
 };
 
 export class PlayerEntity {
 	private scene: Phaser.Scene;
 	private sprite: Phaser.GameObjects.Rectangle;
 	private facingPointer: Phaser.GameObjects.Rectangle;
+	private attackHitbox: Phaser.GameObjects.Rectangle;
 	private playerId: string;
 	private isLocalPlayer: boolean;
 
@@ -52,6 +56,7 @@ export class PlayerEntity {
 	private currentIsDownDashing: boolean = false;
 	private currentHasAirDash: boolean = true;
 	private currentIsBlocking: boolean = false;
+	private currentIsAttacking: boolean = false;
 
 	// Tracks the last server packet we processed to prevent duplicating snapshots on every frame
 	private lastProcessedUpdate: number = 0;
@@ -94,6 +99,12 @@ export class PlayerEntity {
 		this.facingPointer.setOrigin(0.5, 0.5);
 		this.updatePointerPosition(x, y);
 
+		// Attack hitbox indicator — semi-transparent red rectangle (hidden by default)
+		this.attackHitbox = scene.add.rectangle(0, 0, PHYSICS.ATTACK_WIDTH, PHYSICS.ATTACK_HEIGHT, COLORS.ATTACK_HITBOX);
+		this.attackHitbox.setOrigin(0.5, 0.5);
+		this.attackHitbox.setAlpha(0.4);
+		this.attackHitbox.setVisible(false);
+
 		// Initialize physics position for local player
 		if (isLocalPlayer) {
 			this.physicsX = x;
@@ -111,7 +122,8 @@ export class PlayerEntity {
 				isDashing: initialState.isDashing ?? false,
 				isDownDashing: initialState.isDownDashing ?? false,
 				hasAirDash: initialState.hasAirDash ?? true,
-				isBlocking: initialState.isBlocking ?? false
+				isBlocking: initialState.isBlocking ?? false,
+				isAttacking: initialState.isAttacking ?? false
 			});
 		}
 
@@ -152,6 +164,7 @@ export class PlayerEntity {
 			this.currentIsDownDashing = state.isDownDashing;
 			this.currentHasAirDash = state.hasAirDash;
 			this.currentIsBlocking = state.isBlocking;
+			this.currentIsAttacking = state.isAttacking;
 		} else {
 			const updateTime = state.lastUpdateTime ?? performance.now();
 			// Skip if we already processed this exact packet
@@ -167,7 +180,8 @@ export class PlayerEntity {
 				isDashing: state.isDashing ?? false,
 				isDownDashing: state.isDownDashing ?? false,
 				hasAirDash: state.hasAirDash ?? true,
-				isBlocking: state.isBlocking ?? false
+				isBlocking: state.isBlocking ?? false,
+				isAttacking: state.isAttacking ?? false
 			});
 		}
 
@@ -231,6 +245,7 @@ export class PlayerEntity {
 			this.currentIsDownDashing = snap.isDownDashing;
 			this.currentHasAirDash = snap.hasAirDash;
 			this.currentIsBlocking = snap.isBlocking;
+			this.currentIsAttacking = snap.isAttacking;
 			this.updateVisuals(snap.isGrounded);
 			return;
 		}
@@ -246,6 +261,7 @@ export class PlayerEntity {
 			this.currentIsDownDashing = newest.isDownDashing;
 			this.currentHasAirDash = newest.hasAirDash;
 			this.currentIsBlocking = newest.isBlocking;
+			this.currentIsAttacking = newest.isAttacking;
 			this.updateVisuals(newest.isGrounded);
 			return;
 		}
@@ -281,6 +297,7 @@ export class PlayerEntity {
 		this.currentIsDownDashing = snap.isDownDashing;
 		this.currentHasAirDash = snap.hasAirDash;
 		this.currentIsBlocking = snap.isBlocking;
+		this.currentIsAttacking = snap.isAttacking;
 
 		this.sprite.setPosition(interpolatedX, interpolatedY);
 		this.updatePointerPosition(interpolatedX, interpolatedY);
@@ -305,6 +322,7 @@ export class PlayerEntity {
 
 	destroy(): void {
 		console.log(`[PlayerEntity] Destroying player: ${this.playerId}`);
+		this.attackHitbox.destroy();
 		this.facingPointer.destroy();
 		this.sprite.destroy();
 	}
@@ -346,6 +364,8 @@ export class PlayerEntity {
 			color = COLORS.DOWN_DASH;
 		} else if (this.currentIsDashing) {
 			color = COLORS.DASH;
+		} else if (this.currentIsAttacking) {
+			color = COLORS.ATTACK;
 		} else if (this.currentIsBlocking) {
 			color = COLORS.BLOCK;
 		} else {
@@ -354,6 +374,16 @@ export class PlayerEntity {
 		}
 
 		this.sprite.setFillStyle(color);
+
+		// --- Attack hitbox visual ---
+		if (this.currentIsAttacking) {
+			this.attackHitbox.setVisible(true);
+			const hitboxX = this.sprite.x + (this.currentFacing * (BODY_W / 2 + PHYSICS.ATTACK_WIDTH / 2));
+			const hitboxY = this.sprite.y - BODY_H / 2;
+			this.attackHitbox.setPosition(hitboxX, hitboxY);
+		} else {
+			this.attackHitbox.setVisible(false);
+		}
 
 		// Slightly dim the player when airborne and air dash is spent
 		if (!isGrounded && !this.currentHasAirDash && !this.currentIsDashing && !this.currentIsDownDashing) {

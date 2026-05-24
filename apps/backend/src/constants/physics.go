@@ -38,4 +38,16 @@ const (
 
 	// BlockSpeedFactor is the movement speed multiplier while blocking (0.3 = 30% speed)
 	BlockSpeedFactor = 0.3
+
+	// AttackDuration is the active attack swing duration in seconds
+	AttackDuration = 0.2
+
+	// AttackCooldownTime is the minimum time between initiating attacks in seconds
+	AttackCooldownTime = 0.4
+
+	// AttackWidth is the horizontal reach of the attack hitbox in pixels
+	AttackWidth = 40.0
+
+	// AttackHeight is the vertical height of the attack hitbox in pixels
+	AttackHeight = 30.0
 )

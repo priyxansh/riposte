@@ -44,6 +44,12 @@ export const getMoveListener = (keyState: KeyState) => {
 			case 'x':
 				movePlayer({ direction: 'block', keyState });
 				break;
+			case 'z':
+				if (keyState === 'pressed') {
+					movePlayer({ direction: 'attack', keyState: 'pressed' });
+				}
+				// No 'released' event for attack — it's fire-and-forget (for now)
+				break;
 			case 'arrowdown':
 			case 's':
 				// These keys are tracked for combo detection but don't

@@ -40,6 +40,9 @@ export const gameLoopHandler = (
 			isHoldingLeft: player.state.isHoldingLeft ?? false,
 			isHoldingRight: player.state.isHoldingRight ?? false,
 			isBlocking: player.state.isBlocking ?? false,
+			isAttacking: player.state.isAttacking ?? false,
+			attackTimer: player.state.attackTimer ?? 0,
+			attackCooldown: player.state.attackCooldown ?? 0,
 			lastUpdateTime: performance.now()
 		};
 

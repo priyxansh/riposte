@@ -92,6 +92,35 @@ func StartGameLoop(roomID string) error {
 							}
 						}
 
+						// --- Attack cooldown ---
+						if s.AttackCooldown > 0 {
+							s.AttackCooldown -= constants.FixedDeltaTime
+							if s.AttackCooldown < 0 {
+								s.AttackCooldown = 0
+							}
+						}
+
+						// --- Attack timer ---
+						if s.IsAttacking {
+							s.AttackTimer -= constants.FixedDeltaTime
+							if s.AttackTimer <= 0 {
+								s.IsAttacking = false
+								s.AttackTimer = 0
+								// Restore velocity based on held keys
+								speed := float64(constants.DefaultSpeed)
+								if s.IsBlocking {
+									speed *= constants.BlockSpeedFactor
+								}
+								if s.IsHoldingLeft && !s.IsHoldingRight {
+									s.VX = -speed
+								} else if s.IsHoldingRight && !s.IsHoldingLeft {
+									s.VX = speed
+								} else {
+									s.VX = 0
+								}
+							}
+						}
+
 						// --- Dash physics ---
 						if s.IsDashing {
 							// Horizontal dash: force velocity, skip gravity
@@ -142,6 +171,11 @@ func StartGameLoop(roomID string) error {
 							if s.VY > constants.TerminalVelocity {
 								s.VY = constants.TerminalVelocity
 							}
+						}
+
+						// --- Attack movement lock ---
+						if s.IsAttacking {
+							s.VX = 0
 						}
 
 						// Update position
@@ -305,8 +339,8 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 				}
 			case "jump":
 				if payload.KeyState == "pressed" {
-					// Only allow jump if player is grounded and not dashing
-					if s.IsGrounded && !s.IsDashing && !s.IsDownDashing {
+					// Only allow jump if player is grounded and not dashing/attacking
+					if s.IsGrounded && !s.IsDashing && !s.IsDownDashing && !s.IsAttacking {
 						s.VY = constants.JumpStrength
 					}
 				} else if payload.KeyState == "released" {
@@ -316,7 +350,7 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 					}
 				}
 			case "dash":
-				if payload.KeyState == "pressed" && !s.IsDashing && !s.IsDownDashing && !s.IsBlocking && s.DashCooldown <= 0 {
+				if payload.KeyState == "pressed" && !s.IsDashing && !s.IsDownDashing && !s.IsBlocking && !s.IsAttacking && s.DashCooldown <= 0 {
 					if s.IsGrounded || s.HasAirDash {
 						s.IsDashing = true
 						s.DashTimer = constants.DashDuration
@@ -329,7 +363,7 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 					}
 				}
 			case "downdash":
-				if payload.KeyState == "pressed" && !s.IsGrounded && !s.IsDashing && !s.IsDownDashing && !s.IsBlocking && s.DashCooldown <= 0 {
+				if payload.KeyState == "pressed" && !s.IsGrounded && !s.IsDashing && !s.IsDownDashing && !s.IsBlocking && !s.IsAttacking && s.DashCooldown <= 0 {
 					s.IsDownDashing = true
 					s.DashTimer = constants.DownDashDuration
 					s.DashCooldown = constants.DashCooldownTime
@@ -337,11 +371,20 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 					s.VY = constants.DownDashSpeed
 					s.HasAirDash = false
 				}
+			case "attack":
+				if payload.KeyState == "pressed" && !s.IsAttacking && !s.IsBlocking && !s.IsDashing && !s.IsDownDashing && s.AttackCooldown <= 0 {
+					s.IsAttacking = true
+					s.AttackTimer = constants.AttackDuration
+					s.AttackCooldown = constants.AttackCooldownTime
+					s.VX = 0
+				}
 			case "block":
 				if payload.KeyState == "pressed" {
-					s.IsBlocking = true
-					// Cannot block while dashing
-					if !s.IsDashing && !s.IsDownDashing {
+					if !s.IsAttacking {
+						s.IsBlocking = true
+					}
+					// Cannot apply block speed while dashing or attacking
+					if !s.IsDashing && !s.IsDownDashing && !s.IsAttacking {
 						// Cap current velocity to block speed
 						blockSpeed := float64(constants.DefaultSpeed) * constants.BlockSpeedFactor
 						if s.VX > blockSpeed {

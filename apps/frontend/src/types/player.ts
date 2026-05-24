@@ -23,9 +23,12 @@ export type PlayerState = {
 	isHoldingLeft: boolean;
 	isHoldingRight: boolean;
 	isBlocking: boolean;
+	isAttacking: boolean;
+	attackTimer: number;
+	attackCooldown: number;
 	lastUpdateTime?: number;
 };
 
-export type MoveDirection = 'left' | 'right' | 'jump' | 'dash' | 'downdash' | 'block';
+export type MoveDirection = 'left' | 'right' | 'jump' | 'dash' | 'downdash' | 'block' | 'attack';
 export type KeyState = 'pressed' | 'released';
 

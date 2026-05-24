@@ -110,8 +110,8 @@ export function applyInputToState(
             break;
         case 'jump':
             if (keyState === 'pressed') {
-                // Only allow jump if grounded and not dashing
-                if (newState.isGrounded && !newState.isDashing && !newState.isDownDashing) {
+                // Only allow jump if grounded and not dashing/attacking
+                if (newState.isGrounded && !newState.isDashing && !newState.isDownDashing && !newState.isAttacking) {
                     newState.vy = PHYSICS.JUMP_STRENGTH;
                 }
             } else if (keyState === 'released') {
@@ -122,7 +122,7 @@ export function applyInputToState(
             }
             break;
         case 'dash':
-            if (keyState === 'pressed' && !newState.isDashing && !newState.isDownDashing && !newState.isBlocking && newState.dashCooldown <= 0) {
+            if (keyState === 'pressed' && !newState.isDashing && !newState.isDownDashing && !newState.isBlocking && !newState.isAttacking && newState.dashCooldown <= 0) {
                 if (newState.isGrounded || newState.hasAirDash) {
                     newState.isDashing = true;
                     newState.dashTimer = PHYSICS.DASH_DURATION;
@@ -136,7 +136,7 @@ export function applyInputToState(
             }
             break;
         case 'downdash':
-            if (keyState === 'pressed' && !newState.isGrounded && !newState.isDashing && !newState.isDownDashing && !newState.isBlocking && newState.dashCooldown <= 0) {
+            if (keyState === 'pressed' && !newState.isGrounded && !newState.isDashing && !newState.isDownDashing && !newState.isBlocking && !newState.isAttacking && newState.dashCooldown <= 0) {
                 newState.isDownDashing = true;
                 newState.dashTimer = PHYSICS.DOWN_DASH_DURATION;
                 newState.dashCooldown = PHYSICS.DASH_COOLDOWN_TIME;
@@ -145,11 +145,21 @@ export function applyInputToState(
                 newState.hasAirDash = false;
             }
             break;
+        case 'attack':
+            if (keyState === 'pressed' && !newState.isAttacking && !newState.isBlocking && !newState.isDashing && !newState.isDownDashing && newState.attackCooldown <= 0) {
+                newState.isAttacking = true;
+                newState.attackTimer = PHYSICS.ATTACK_DURATION;
+                newState.attackCooldown = PHYSICS.ATTACK_COOLDOWN_TIME;
+                newState.vx = 0;
+            }
+            break;
         case 'block':
             if (keyState === 'pressed') {
-                newState.isBlocking = true;
-                // Cannot block while dashing
-                if (!newState.isDashing && !newState.isDownDashing) {
+                if (!newState.isAttacking) {
+                    newState.isBlocking = true;
+                }
+                // Cannot apply block speed while dashing or attacking
+                if (!newState.isDashing && !newState.isDownDashing && !newState.isAttacking) {
                     // Cap current velocity to block speed
                     const blockSpeed = PHYSICS.DEFAULT_SPEED * PHYSICS.BLOCK_SPEED_FACTOR;
                     if (newState.vx > blockSpeed) {
@@ -189,6 +199,33 @@ export function simulatePhysics(state: PlayerState, deltaTime: number): PlayerSt
         newState.dashCooldown -= deltaTime;
         if (newState.dashCooldown < 0) {
             newState.dashCooldown = 0;
+        }
+    }
+
+    // --- Attack cooldown ---
+    if (newState.attackCooldown > 0) {
+        newState.attackCooldown -= deltaTime;
+        if (newState.attackCooldown < 0) {
+            newState.attackCooldown = 0;
+        }
+    }
+
+    // --- Attack timer ---
+    if (newState.isAttacking) {
+        newState.attackTimer -= deltaTime;
+        if (newState.attackTimer <= 0) {
+            newState.isAttacking = false;
+            newState.attackTimer = 0;
+            // Restore velocity based on held keys
+            let speed = PHYSICS.DEFAULT_SPEED;
+            if (newState.isBlocking) speed *= PHYSICS.BLOCK_SPEED_FACTOR;
+            if (newState.isHoldingLeft && !newState.isHoldingRight) {
+                newState.vx = -speed;
+            } else if (newState.isHoldingRight && !newState.isHoldingLeft) {
+                newState.vx = speed;
+            } else {
+                newState.vx = 0;
+            }
         }
     }
 
@@ -238,6 +275,11 @@ export function simulatePhysics(state: PlayerState, deltaTime: number): PlayerSt
         if (newState.vy > PHYSICS.TERMINAL_VELOCITY) {
             newState.vy = PHYSICS.TERMINAL_VELOCITY;
         }
+    }
+
+    // --- Attack movement lock ---
+    if (newState.isAttacking) {
+        newState.vx = 0;
     }
 
     // Update position

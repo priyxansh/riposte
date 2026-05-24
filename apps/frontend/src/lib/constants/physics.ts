@@ -13,5 +13,9 @@ export const PHYSICS = {
     DOWN_DASH_SPEED: 800.0, // pixels/s
     DOWN_DASH_DURATION: 0.25, // seconds
     BLOCK_SPEED_FACTOR: 0.3, // movement speed multiplier while blocking
+    ATTACK_DURATION: 0.2, // seconds — active attack swing duration
+    ATTACK_COOLDOWN_TIME: 0.4, // seconds — minimum time between attacks
+    ATTACK_WIDTH: 40.0, // pixels — horizontal reach of attack hitbox
+    ATTACK_HEIGHT: 30.0, // pixels — vertical height of attack hitbox
 } as const;
 

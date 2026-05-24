@@ -31,6 +31,9 @@ type PlayerState struct {
 	IsHoldingLeft   bool    `json:"isHoldingLeft"`
 	IsHoldingRight  bool    `json:"isHoldingRight"`
 	IsBlocking      bool    `json:"isBlocking"`
+	IsAttacking     bool    `json:"isAttacking"`
+	AttackTimer     float64 `json:"attackTimer"`
+	AttackCooldown  float64 `json:"attackCooldown"`
 }
 
 type PlayerSnapshot struct {
