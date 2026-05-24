@@ -39,6 +39,7 @@ export const gameLoopHandler = (
 			hasAirDash: player.state.hasAirDash ?? true,
 			isHoldingLeft: player.state.isHoldingLeft ?? false,
 			isHoldingRight: player.state.isHoldingRight ?? false,
+			isBlocking: player.state.isBlocking ?? false,
 			lastUpdateTime: performance.now()
 		};
 

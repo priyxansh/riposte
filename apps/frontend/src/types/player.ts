@@ -22,9 +22,10 @@ export type PlayerState = {
 	hasAirDash: boolean;
 	isHoldingLeft: boolean;
 	isHoldingRight: boolean;
+	isBlocking: boolean;
 	lastUpdateTime?: number;
 };
 
-export type MoveDirection = 'left' | 'right' | 'jump' | 'dash' | 'downdash';
+export type MoveDirection = 'left' | 'right' | 'jump' | 'dash' | 'downdash' | 'block';
 export type KeyState = 'pressed' | 'released';
 

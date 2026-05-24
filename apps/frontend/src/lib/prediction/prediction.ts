@@ -67,13 +67,17 @@ export function applyInputToState(
                 newState.isHoldingLeft = true;
                 newState.facingDirection = -1;
                 if (!newState.isDashing && !newState.isDownDashing) {
-                    newState.vx = -PHYSICS.DEFAULT_SPEED;
+                    let speed = PHYSICS.DEFAULT_SPEED;
+                    if (newState.isBlocking) speed *= PHYSICS.BLOCK_SPEED_FACTOR;
+                    newState.vx = -speed;
                 }
             } else {
                 newState.isHoldingLeft = false;
                 if (!newState.isDashing && !newState.isDownDashing) {
                     if (newState.isHoldingRight) {
-                        newState.vx = PHYSICS.DEFAULT_SPEED;
+                        let speed = PHYSICS.DEFAULT_SPEED;
+                        if (newState.isBlocking) speed *= PHYSICS.BLOCK_SPEED_FACTOR;
+                        newState.vx = speed;
                         newState.facingDirection = 1;
                     } else {
                         newState.vx = 0;
@@ -86,13 +90,17 @@ export function applyInputToState(
                 newState.isHoldingRight = true;
                 newState.facingDirection = 1;
                 if (!newState.isDashing && !newState.isDownDashing) {
-                    newState.vx = PHYSICS.DEFAULT_SPEED;
+                    let speed = PHYSICS.DEFAULT_SPEED;
+                    if (newState.isBlocking) speed *= PHYSICS.BLOCK_SPEED_FACTOR;
+                    newState.vx = speed;
                 }
             } else {
                 newState.isHoldingRight = false;
                 if (!newState.isDashing && !newState.isDownDashing) {
                     if (newState.isHoldingLeft) {
-                        newState.vx = -PHYSICS.DEFAULT_SPEED;
+                        let speed = PHYSICS.DEFAULT_SPEED;
+                        if (newState.isBlocking) speed *= PHYSICS.BLOCK_SPEED_FACTOR;
+                        newState.vx = -speed;
                         newState.facingDirection = -1;
                     } else {
                         newState.vx = 0;
@@ -114,7 +122,7 @@ export function applyInputToState(
             }
             break;
         case 'dash':
-            if (keyState === 'pressed' && !newState.isDashing && !newState.isDownDashing && newState.dashCooldown <= 0) {
+            if (keyState === 'pressed' && !newState.isDashing && !newState.isDownDashing && !newState.isBlocking && newState.dashCooldown <= 0) {
                 if (newState.isGrounded || newState.hasAirDash) {
                     newState.isDashing = true;
                     newState.dashTimer = PHYSICS.DASH_DURATION;
@@ -128,13 +136,40 @@ export function applyInputToState(
             }
             break;
         case 'downdash':
-            if (keyState === 'pressed' && !newState.isGrounded && !newState.isDashing && !newState.isDownDashing && newState.dashCooldown <= 0) {
+            if (keyState === 'pressed' && !newState.isGrounded && !newState.isDashing && !newState.isDownDashing && !newState.isBlocking && newState.dashCooldown <= 0) {
                 newState.isDownDashing = true;
                 newState.dashTimer = PHYSICS.DOWN_DASH_DURATION;
                 newState.dashCooldown = PHYSICS.DASH_COOLDOWN_TIME;
                 newState.vx = 0;
                 newState.vy = PHYSICS.DOWN_DASH_SPEED;
                 newState.hasAirDash = false;
+            }
+            break;
+        case 'block':
+            if (keyState === 'pressed') {
+                newState.isBlocking = true;
+                // Cannot block while dashing
+                if (!newState.isDashing && !newState.isDownDashing) {
+                    // Cap current velocity to block speed
+                    const blockSpeed = PHYSICS.DEFAULT_SPEED * PHYSICS.BLOCK_SPEED_FACTOR;
+                    if (newState.vx > blockSpeed) {
+                        newState.vx = blockSpeed;
+                    } else if (newState.vx < -blockSpeed) {
+                        newState.vx = -blockSpeed;
+                    }
+                }
+            } else {
+                newState.isBlocking = false;
+                // Restore full speed based on held keys
+                if (!newState.isDashing && !newState.isDownDashing) {
+                    if (newState.isHoldingLeft && !newState.isHoldingRight) {
+                        newState.vx = -PHYSICS.DEFAULT_SPEED;
+                    } else if (newState.isHoldingRight && !newState.isHoldingLeft) {
+                        newState.vx = PHYSICS.DEFAULT_SPEED;
+                    } else {
+                        newState.vx = 0;
+                    }
+                }
             }
             break;
     }
@@ -166,10 +201,12 @@ export function simulatePhysics(state: PlayerState, deltaTime: number): PlayerSt
         if (newState.dashTimer <= 0) {
             newState.isDashing = false;
             newState.dashTimer = 0;
+            let speed = PHYSICS.DEFAULT_SPEED;
+            if (newState.isBlocking) speed *= PHYSICS.BLOCK_SPEED_FACTOR;
             if (newState.isHoldingLeft && !newState.isHoldingRight) {
-                newState.vx = -PHYSICS.DEFAULT_SPEED;
+                newState.vx = -speed;
             } else if (newState.isHoldingRight && !newState.isHoldingLeft) {
-                newState.vx = PHYSICS.DEFAULT_SPEED;
+                newState.vx = speed;
             } else {
                 newState.vx = 0;
             }
@@ -183,10 +220,12 @@ export function simulatePhysics(state: PlayerState, deltaTime: number): PlayerSt
             newState.isDownDashing = false;
             newState.dashTimer = 0;
             newState.vy = 0;
+            let speed = PHYSICS.DEFAULT_SPEED;
+            if (newState.isBlocking) speed *= PHYSICS.BLOCK_SPEED_FACTOR;
             if (newState.isHoldingLeft && !newState.isHoldingRight) {
-                newState.vx = -PHYSICS.DEFAULT_SPEED;
+                newState.vx = -speed;
             } else if (newState.isHoldingRight && !newState.isHoldingLeft) {
-                newState.vx = PHYSICS.DEFAULT_SPEED;
+                newState.vx = speed;
             } else {
                 newState.vx = 0;
             }
@@ -215,10 +254,12 @@ export function simulatePhysics(state: PlayerState, deltaTime: number): PlayerSt
         if (newState.isDownDashing) {
             newState.isDownDashing = false;
             newState.dashTimer = 0;
+            let speed = PHYSICS.DEFAULT_SPEED;
+            if (newState.isBlocking) speed *= PHYSICS.BLOCK_SPEED_FACTOR;
             if (newState.isHoldingLeft && !newState.isHoldingRight) {
-                newState.vx = -PHYSICS.DEFAULT_SPEED;
+                newState.vx = -speed;
             } else if (newState.isHoldingRight && !newState.isHoldingLeft) {
-                newState.vx = PHYSICS.DEFAULT_SPEED;
+                newState.vx = speed;
             } else {
                 newState.vx = 0;
             }

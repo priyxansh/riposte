@@ -15,6 +15,7 @@ const COLORS = {
 	},
 	DASH: 0x00ffff, // Cyan — horizontal / air dash
 	DOWN_DASH: 0xffd700, // Gold — downward plunge
+	BLOCK: 0x90cdf4, // Light blue — blocking stance
 	FACING_POINTER: 0x1a202c // Dark accent for facing indicator
 } as const;
 
@@ -35,6 +36,7 @@ type PositionSnapshot = {
 	isDashing: boolean;
 	isDownDashing: boolean;
 	hasAirDash: boolean;
+	isBlocking: boolean;
 };
 
 export class PlayerEntity {
@@ -49,6 +51,7 @@ export class PlayerEntity {
 	private currentIsDashing: boolean = false;
 	private currentIsDownDashing: boolean = false;
 	private currentHasAirDash: boolean = true;
+	private currentIsBlocking: boolean = false;
 
 	// Tracks the last server packet we processed to prevent duplicating snapshots on every frame
 	private lastProcessedUpdate: number = 0;
@@ -107,7 +110,8 @@ export class PlayerEntity {
 				facingDirection: initialState.facingDirection ?? 1,
 				isDashing: initialState.isDashing ?? false,
 				isDownDashing: initialState.isDownDashing ?? false,
-				hasAirDash: initialState.hasAirDash ?? true
+				hasAirDash: initialState.hasAirDash ?? true,
+				isBlocking: initialState.isBlocking ?? false
 			});
 		}
 
@@ -147,6 +151,7 @@ export class PlayerEntity {
 			this.currentIsDashing = state.isDashing;
 			this.currentIsDownDashing = state.isDownDashing;
 			this.currentHasAirDash = state.hasAirDash;
+			this.currentIsBlocking = state.isBlocking;
 		} else {
 			const updateTime = state.lastUpdateTime ?? performance.now();
 			// Skip if we already processed this exact packet
@@ -161,7 +166,8 @@ export class PlayerEntity {
 				facingDirection: state.facingDirection ?? 1,
 				isDashing: state.isDashing ?? false,
 				isDownDashing: state.isDownDashing ?? false,
-				hasAirDash: state.hasAirDash ?? true
+				hasAirDash: state.hasAirDash ?? true,
+				isBlocking: state.isBlocking ?? false
 			});
 		}
 
@@ -224,6 +230,7 @@ export class PlayerEntity {
 			this.currentIsDashing = snap.isDashing;
 			this.currentIsDownDashing = snap.isDownDashing;
 			this.currentHasAirDash = snap.hasAirDash;
+			this.currentIsBlocking = snap.isBlocking;
 			this.updateVisuals(snap.isGrounded);
 			return;
 		}
@@ -238,6 +245,7 @@ export class PlayerEntity {
 			this.currentIsDashing = newest.isDashing;
 			this.currentIsDownDashing = newest.isDownDashing;
 			this.currentHasAirDash = newest.hasAirDash;
+			this.currentIsBlocking = newest.isBlocking;
 			this.updateVisuals(newest.isGrounded);
 			return;
 		}
@@ -272,6 +280,7 @@ export class PlayerEntity {
 		this.currentIsDashing = snap.isDashing;
 		this.currentIsDownDashing = snap.isDownDashing;
 		this.currentHasAirDash = snap.hasAirDash;
+		this.currentIsBlocking = snap.isBlocking;
 
 		this.sprite.setPosition(interpolatedX, interpolatedY);
 		this.updatePointerPosition(interpolatedX, interpolatedY);
@@ -337,6 +346,8 @@ export class PlayerEntity {
 			color = COLORS.DOWN_DASH;
 		} else if (this.currentIsDashing) {
 			color = COLORS.DASH;
+		} else if (this.currentIsBlocking) {
+			color = COLORS.BLOCK;
 		} else {
 			const palette = this.isLocalPlayer ? COLORS.LOCAL : COLORS.REMOTE;
 			color = isGrounded ? palette.GROUNDED : palette.AIRBORNE;

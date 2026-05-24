@@ -30,6 +30,7 @@ type PlayerState struct {
 	HasAirDash      bool    `json:"hasAirDash"`
 	IsHoldingLeft   bool    `json:"isHoldingLeft"`
 	IsHoldingRight  bool    `json:"isHoldingRight"`
+	IsBlocking      bool    `json:"isBlocking"`
 }
 
 type PlayerSnapshot struct {

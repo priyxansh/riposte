@@ -12,5 +12,6 @@ export const PHYSICS = {
     DASH_COOLDOWN_TIME: 0.5, // seconds
     DOWN_DASH_SPEED: 800.0, // pixels/s
     DOWN_DASH_DURATION: 0.25, // seconds
+    BLOCK_SPEED_FACTOR: 0.3, // movement speed multiplier while blocking
 } as const;
 

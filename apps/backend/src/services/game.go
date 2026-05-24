@@ -101,10 +101,14 @@ func StartGameLoop(roomID string) error {
 							if s.DashTimer <= 0 {
 								s.IsDashing = false
 								s.DashTimer = 0
+								speed := float64(constants.DefaultSpeed)
+								if s.IsBlocking {
+									speed *= constants.BlockSpeedFactor
+								}
 								if s.IsHoldingLeft && !s.IsHoldingRight {
-									s.VX = -float64(constants.DefaultSpeed)
+									s.VX = -speed
 								} else if s.IsHoldingRight && !s.IsHoldingLeft {
-									s.VX = float64(constants.DefaultSpeed)
+									s.VX = speed
 								} else {
 									s.VX = 0
 								}
@@ -118,10 +122,14 @@ func StartGameLoop(roomID string) error {
 								s.IsDownDashing = false
 								s.DashTimer = 0
 								s.VY = 0
+								speed := float64(constants.DefaultSpeed)
+								if s.IsBlocking {
+									speed *= constants.BlockSpeedFactor
+								}
 								if s.IsHoldingLeft && !s.IsHoldingRight {
-									s.VX = -float64(constants.DefaultSpeed)
+									s.VX = -speed
 								} else if s.IsHoldingRight && !s.IsHoldingLeft {
-									s.VX = float64(constants.DefaultSpeed)
+									s.VX = speed
 								} else {
 									s.VX = 0
 								}
@@ -150,10 +158,14 @@ func StartGameLoop(roomID string) error {
 							if s.IsDownDashing {
 								s.IsDownDashing = false
 								s.DashTimer = 0
+								speed := float64(constants.DefaultSpeed)
+								if s.IsBlocking {
+									speed *= constants.BlockSpeedFactor
+								}
 								if s.IsHoldingLeft && !s.IsHoldingRight {
-									s.VX = -float64(constants.DefaultSpeed)
+									s.VX = -speed
 								} else if s.IsHoldingRight && !s.IsHoldingLeft {
-									s.VX = float64(constants.DefaultSpeed)
+									s.VX = speed
 								} else {
 									s.VX = 0
 								}
@@ -244,13 +256,21 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 					s.IsHoldingLeft = true
 					s.FacingDirection = -1
 					if !s.IsDashing && !s.IsDownDashing {
-						s.VX = -float64(constants.DefaultSpeed)
+						speed := float64(constants.DefaultSpeed)
+						if s.IsBlocking {
+							speed *= constants.BlockSpeedFactor
+						}
+						s.VX = -speed
 					}
 				} else {
 					s.IsHoldingLeft = false
 					if !s.IsDashing && !s.IsDownDashing {
 						if s.IsHoldingRight {
-							s.VX = float64(constants.DefaultSpeed)
+							speed := float64(constants.DefaultSpeed)
+							if s.IsBlocking {
+								speed *= constants.BlockSpeedFactor
+							}
+							s.VX = speed
 							s.FacingDirection = 1
 						} else {
 							s.VX = 0
@@ -262,13 +282,21 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 					s.IsHoldingRight = true
 					s.FacingDirection = 1
 					if !s.IsDashing && !s.IsDownDashing {
-						s.VX = float64(constants.DefaultSpeed)
+						speed := float64(constants.DefaultSpeed)
+						if s.IsBlocking {
+							speed *= constants.BlockSpeedFactor
+						}
+						s.VX = speed
 					}
 				} else {
 					s.IsHoldingRight = false
 					if !s.IsDashing && !s.IsDownDashing {
 						if s.IsHoldingLeft {
-							s.VX = -float64(constants.DefaultSpeed)
+							speed := float64(constants.DefaultSpeed)
+							if s.IsBlocking {
+								speed *= constants.BlockSpeedFactor
+							}
+							s.VX = -speed
 							s.FacingDirection = -1
 						} else {
 							s.VX = 0
@@ -288,7 +316,7 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 					}
 				}
 			case "dash":
-				if payload.KeyState == "pressed" && !s.IsDashing && !s.IsDownDashing && s.DashCooldown <= 0 {
+				if payload.KeyState == "pressed" && !s.IsDashing && !s.IsDownDashing && !s.IsBlocking && s.DashCooldown <= 0 {
 					if s.IsGrounded || s.HasAirDash {
 						s.IsDashing = true
 						s.DashTimer = constants.DashDuration
@@ -301,13 +329,39 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 					}
 				}
 			case "downdash":
-				if payload.KeyState == "pressed" && !s.IsGrounded && !s.IsDashing && !s.IsDownDashing && s.DashCooldown <= 0 {
+				if payload.KeyState == "pressed" && !s.IsGrounded && !s.IsDashing && !s.IsDownDashing && !s.IsBlocking && s.DashCooldown <= 0 {
 					s.IsDownDashing = true
 					s.DashTimer = constants.DownDashDuration
 					s.DashCooldown = constants.DashCooldownTime
 					s.VX = 0
 					s.VY = constants.DownDashSpeed
 					s.HasAirDash = false
+				}
+			case "block":
+				if payload.KeyState == "pressed" {
+					s.IsBlocking = true
+					// Cannot block while dashing
+					if !s.IsDashing && !s.IsDownDashing {
+						// Cap current velocity to block speed
+						blockSpeed := float64(constants.DefaultSpeed) * constants.BlockSpeedFactor
+						if s.VX > blockSpeed {
+							s.VX = blockSpeed
+						} else if s.VX < -blockSpeed {
+							s.VX = -blockSpeed
+						}
+					}
+				} else {
+					s.IsBlocking = false
+					// Restore full speed based on held keys
+					if !s.IsDashing && !s.IsDownDashing {
+						if s.IsHoldingLeft && !s.IsHoldingRight {
+							s.VX = -float64(constants.DefaultSpeed)
+						} else if s.IsHoldingRight && !s.IsHoldingLeft {
+							s.VX = float64(constants.DefaultSpeed)
+						} else {
+							s.VX = 0
+						}
+					}
 				}
 			default:
 				if !s.IsDashing && !s.IsDownDashing {

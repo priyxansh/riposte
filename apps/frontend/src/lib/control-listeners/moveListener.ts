@@ -41,6 +41,9 @@ export const getMoveListener = (keyState: KeyState) => {
 				}
 				// No 'released' event for dash — it's fire-and-forget
 				break;
+			case 'x':
+				movePlayer({ direction: 'block', keyState });
+				break;
 			case 'arrowdown':
 			case 's':
 				// These keys are tracked for combo detection but don't

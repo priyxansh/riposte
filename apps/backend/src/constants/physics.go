@@ -35,4 +35,7 @@ const (
 
 	// DownDashDuration is the maximum duration of a down-dash before timeout
 	DownDashDuration = 0.25
+
+	// BlockSpeedFactor is the movement speed multiplier while blocking (0.3 = 30% speed)
+	BlockSpeedFactor = 0.3
 )
