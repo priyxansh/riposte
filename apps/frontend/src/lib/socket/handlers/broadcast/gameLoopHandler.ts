@@ -47,6 +47,9 @@ export const gameLoopHandler = (
 			posture: player.state.posture ?? 0,
 			blockTimer: player.state.blockTimer ?? 0,
 			lastHitResult: player.state.lastHitResult ?? '',
+			health: player.state.health ?? 100,
+			isStaggered: player.state.isStaggered ?? false,
+			staggerTimer: player.state.staggerTimer ?? 0,
 			lastUpdateTime: performance.now()
 		};
 

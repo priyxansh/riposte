@@ -13,6 +13,7 @@ func NewInitialStates1v1() []*gametypes.PlayerState {
 			VY:              0,
 			FacingDirection: 1, // Faces right
 			HasAirDash:      true,
+			Health:          MaxHealth,
 		},
 		{
 			X:               500,
@@ -21,6 +22,7 @@ func NewInitialStates1v1() []*gametypes.PlayerState {
 			VY:              0,
 			FacingDirection: -1, // Faces left
 			HasAirDash:      true,
+			Health:          MaxHealth,
 		},
 	}
 }
@@ -35,6 +37,7 @@ func NewInitialStates2v2() []*gametypes.PlayerState {
 			VY:              0,
 			FacingDirection: 1,
 			HasAirDash:      true,
+			Health:          MaxHealth,
 		},
 		{
 			X:               150,
@@ -43,6 +46,7 @@ func NewInitialStates2v2() []*gametypes.PlayerState {
 			VY:              0,
 			FacingDirection: 1,
 			HasAirDash:      true,
+			Health:          MaxHealth,
 		},
 		{
 			X:               500,
@@ -51,6 +55,7 @@ func NewInitialStates2v2() []*gametypes.PlayerState {
 			VY:              0,
 			FacingDirection: -1,
 			HasAirDash:      true,
+			Health:          MaxHealth,
 		},
 		{
 			X:               550,
@@ -59,7 +64,7 @@ func NewInitialStates2v2() []*gametypes.PlayerState {
 			VY:              0,
 			FacingDirection: -1,
 			HasAirDash:      true,
+			Health:          MaxHealth,
 		},
 	}
 }
-

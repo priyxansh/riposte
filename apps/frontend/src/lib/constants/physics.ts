@@ -25,5 +25,8 @@ export const PHYSICS = {
     HIT_POSTURE_DAMAGE: 30.0, // posture build-up on defender from a raw hit
     DEFLECT_POSTURE_DAMAGE: 25.0, // posture damage reflected to attacker on perfect deflect
     POSTURE_RECOVERY_RATE: 20.0, // posture decay per second when idle
+    MAX_HEALTH: 100.0, // starting health pool
+    STAGGER_DURATION: 1.2, // stun duration in seconds when posture breaks
+    HIT_HP_DAMAGE: 20.0, // health damage from a raw hit
+    CRITICAL_HP_DAMAGE: 50.0, // health damage dealt to a staggered player
 } as const;
-

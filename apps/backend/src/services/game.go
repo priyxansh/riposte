@@ -127,10 +127,31 @@ func StartGameLoop(roomID string) error {
 						}
 
 						// --- Posture recovery ---
-						if !s.IsBlocking && !s.IsAttacking && s.Posture > 0 {
+						if !s.IsBlocking && !s.IsAttacking && !s.IsStaggered && s.Posture > 0 {
 							s.Posture -= constants.PostureRecoveryRate * constants.FixedDeltaTime
 							if s.Posture < 0 {
 								s.Posture = 0
+							}
+						}
+
+						// --- Stagger timer ---
+						if s.IsStaggered {
+							s.StaggerTimer -= constants.FixedDeltaTime
+							if s.StaggerTimer <= 0 {
+								s.IsStaggered = false
+								s.StaggerTimer = 0
+								// Restore velocity based on held keys
+								speed := float64(constants.DefaultSpeed)
+								if s.IsBlocking {
+									speed *= constants.BlockSpeedFactor
+								}
+								if s.IsHoldingLeft && !s.IsHoldingRight {
+									s.VX = -speed
+								} else if s.IsHoldingRight && !s.IsHoldingLeft {
+									s.VX = speed
+								} else {
+									s.VX = 0
+								}
 							}
 						}
 
@@ -188,6 +209,11 @@ func StartGameLoop(roomID string) error {
 
 						// --- Attack movement lock ---
 						if s.IsAttacking {
+							s.VX = 0
+						}
+
+						// --- Stagger movement lock ---
+						if s.IsStaggered {
 							s.VX = 0
 						}
 
@@ -298,13 +324,69 @@ func StartGameLoop(roomID string) error {
 							a.LastHitResult = "blocked"
 							d.LastHitResult = "blocked"
 						} else {
-							// Raw hit — defender takes posture damage (HP added in Step 4)
+							// Raw hit — defender takes posture + HP damage
 							d.Posture += constants.HitPostureDamage
 							if d.Posture > constants.MaxPosture {
 								d.Posture = constants.MaxPosture
 							}
+							// HP damage: critical if staggered, normal otherwise
+							if d.IsStaggered {
+								d.Health -= constants.CriticalHPDamage
+							} else {
+								d.Health -= constants.HitHPDamage
+							}
+							if d.Health < 0 {
+								d.Health = 0
+							}
 							a.LastHitResult = "hit"
 							d.LastHitResult = "hit"
+						}
+
+						// --- Posture break → stagger ---
+						if d.Posture >= constants.MaxPosture && !d.IsStaggered {
+							d.IsStaggered = true
+							d.StaggerTimer = constants.StaggerDuration
+							d.Posture = 0
+							d.IsBlocking = false
+							d.IsAttacking = false
+							d.AttackTimer = 0
+							d.IsDashing = false
+							d.IsDownDashing = false
+							d.DashTimer = 0
+							d.VX = 0
+						}
+
+						// --- Attacker posture break (from deflect) ---
+						if a.Posture >= constants.MaxPosture && !a.IsStaggered {
+							a.IsStaggered = true
+							a.StaggerTimer = constants.StaggerDuration
+							a.Posture = 0
+							a.IsBlocking = false
+							a.IsAttacking = false
+							a.AttackTimer = 0
+							a.IsDashing = false
+							a.IsDownDashing = false
+							a.DashTimer = 0
+							a.VX = 0
+						}
+
+						// --- Death check ---
+						if d.Health <= 0 {
+							// Reset both players for a new round
+							for i, p := range room.Players {
+								if p.Conn == nil || p.State == nil {
+									continue
+								}
+								initialStates := constants.NewInitialStates1v1()
+								if room.Mode == "2v2" {
+									initialStates = constants.NewInitialStates2v2()
+								}
+								if i < len(initialStates) {
+									*p.State = *initialStates[i]
+								}
+							}
+							log.Printf("Player died in room %s — round reset", roomID)
+							break // stop checking further defenders this tick
 						}
 					}
 				}
@@ -353,7 +435,7 @@ func AssignInitialStates(room *gametypes.Room) {
 		if i < len(initialStates) {
 			player.State = initialStates[i]
 		} else {
-			player.State = &gametypes.PlayerState{X: 0, Y: 0, VX: 0, VY: 0, FacingDirection: 1, HasAirDash: true}
+			player.State = &gametypes.PlayerState{X: 0, Y: 0, VX: 0, VY: 0, FacingDirection: 1, HasAirDash: true, Health: constants.MaxHealth}
 		}
 	}
 }
@@ -382,8 +464,10 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 			case "left":
 				if payload.KeyState == "pressed" {
 					s.IsHoldingLeft = true
-					s.FacingDirection = -1
-					if !s.IsDashing && !s.IsDownDashing {
+					if !s.IsStaggered {
+						s.FacingDirection = -1
+					}
+					if !s.IsDashing && !s.IsDownDashing && !s.IsStaggered {
 						speed := float64(constants.DefaultSpeed)
 						if s.IsBlocking {
 							speed *= constants.BlockSpeedFactor
@@ -392,7 +476,7 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 					}
 				} else {
 					s.IsHoldingLeft = false
-					if !s.IsDashing && !s.IsDownDashing {
+					if !s.IsDashing && !s.IsDownDashing && !s.IsStaggered {
 						if s.IsHoldingRight {
 							speed := float64(constants.DefaultSpeed)
 							if s.IsBlocking {
@@ -408,8 +492,10 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 			case "right":
 				if payload.KeyState == "pressed" {
 					s.IsHoldingRight = true
-					s.FacingDirection = 1
-					if !s.IsDashing && !s.IsDownDashing {
+					if !s.IsStaggered {
+						s.FacingDirection = 1
+					}
+					if !s.IsDashing && !s.IsDownDashing && !s.IsStaggered {
 						speed := float64(constants.DefaultSpeed)
 						if s.IsBlocking {
 							speed *= constants.BlockSpeedFactor
@@ -418,7 +504,7 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 					}
 				} else {
 					s.IsHoldingRight = false
-					if !s.IsDashing && !s.IsDownDashing {
+					if !s.IsDashing && !s.IsDownDashing && !s.IsStaggered {
 						if s.IsHoldingLeft {
 							speed := float64(constants.DefaultSpeed)
 							if s.IsBlocking {
@@ -433,8 +519,8 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 				}
 			case "jump":
 				if payload.KeyState == "pressed" {
-					// Only allow jump if player is grounded and not dashing/attacking
-					if s.IsGrounded && !s.IsDashing && !s.IsDownDashing && !s.IsAttacking {
+					// Only allow jump if player is grounded and not dashing/attacking/staggered
+					if s.IsGrounded && !s.IsDashing && !s.IsDownDashing && !s.IsAttacking && !s.IsStaggered {
 						s.VY = constants.JumpStrength
 					}
 				} else if payload.KeyState == "released" {
@@ -444,7 +530,7 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 					}
 				}
 			case "dash":
-				if payload.KeyState == "pressed" && !s.IsDashing && !s.IsDownDashing && !s.IsBlocking && !s.IsAttacking && s.DashCooldown <= 0 {
+				if payload.KeyState == "pressed" && !s.IsDashing && !s.IsDownDashing && !s.IsBlocking && !s.IsAttacking && !s.IsStaggered && s.DashCooldown <= 0 {
 					if s.IsGrounded || s.HasAirDash {
 						s.IsDashing = true
 						s.DashTimer = constants.DashDuration
@@ -457,7 +543,7 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 					}
 				}
 			case "downdash":
-				if payload.KeyState == "pressed" && !s.IsGrounded && !s.IsDashing && !s.IsDownDashing && !s.IsBlocking && !s.IsAttacking && s.DashCooldown <= 0 {
+				if payload.KeyState == "pressed" && !s.IsGrounded && !s.IsDashing && !s.IsDownDashing && !s.IsBlocking && !s.IsAttacking && !s.IsStaggered && s.DashCooldown <= 0 {
 					s.IsDownDashing = true
 					s.DashTimer = constants.DownDashDuration
 					s.DashCooldown = constants.DashCooldownTime
@@ -466,7 +552,7 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 					s.HasAirDash = false
 				}
 			case "attack":
-				if payload.KeyState == "pressed" && !s.IsAttacking && !s.IsBlocking && !s.IsDashing && !s.IsDownDashing && s.AttackCooldown <= 0 {
+				if payload.KeyState == "pressed" && !s.IsAttacking && !s.IsBlocking && !s.IsDashing && !s.IsDownDashing && !s.IsStaggered && s.AttackCooldown <= 0 {
 					s.IsAttacking = true
 					s.AttackHitChecked = false // reset for this new swing
 					s.AttackTimer = constants.AttackDuration
@@ -475,7 +561,7 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 				}
 			case "block":
 				if payload.KeyState == "pressed" {
-					if !s.IsAttacking {
+					if !s.IsAttacking && !s.IsStaggered {
 						s.IsBlocking = true
 						s.BlockTimer = 0 // reset parry window on fresh block press
 					}

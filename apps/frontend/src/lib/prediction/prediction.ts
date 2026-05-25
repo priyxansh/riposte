@@ -63,15 +63,17 @@ export function applyInputToState(
         case 'left':
             if (keyState === 'pressed') {
                 newState.isHoldingLeft = true;
-                newState.facingDirection = -1;
-                if (!newState.isDashing && !newState.isDownDashing) {
+                if (!newState.isStaggered) {
+                    newState.facingDirection = -1;
+                }
+                if (!newState.isDashing && !newState.isDownDashing && !newState.isStaggered) {
                     let speed = PHYSICS.DEFAULT_SPEED;
                     if (newState.isBlocking) speed *= PHYSICS.BLOCK_SPEED_FACTOR;
                     newState.vx = -speed;
                 }
             } else {
                 newState.isHoldingLeft = false;
-                if (!newState.isDashing && !newState.isDownDashing) {
+                if (!newState.isDashing && !newState.isDownDashing && !newState.isStaggered) {
                     if (newState.isHoldingRight) {
                         let speed = PHYSICS.DEFAULT_SPEED;
                         if (newState.isBlocking) speed *= PHYSICS.BLOCK_SPEED_FACTOR;
@@ -86,15 +88,17 @@ export function applyInputToState(
         case 'right':
             if (keyState === 'pressed') {
                 newState.isHoldingRight = true;
-                newState.facingDirection = 1;
-                if (!newState.isDashing && !newState.isDownDashing) {
+                if (!newState.isStaggered) {
+                    newState.facingDirection = 1;
+                }
+                if (!newState.isDashing && !newState.isDownDashing && !newState.isStaggered) {
                     let speed = PHYSICS.DEFAULT_SPEED;
                     if (newState.isBlocking) speed *= PHYSICS.BLOCK_SPEED_FACTOR;
                     newState.vx = speed;
                 }
             } else {
                 newState.isHoldingRight = false;
-                if (!newState.isDashing && !newState.isDownDashing) {
+                if (!newState.isDashing && !newState.isDownDashing && !newState.isStaggered) {
                     if (newState.isHoldingLeft) {
                         let speed = PHYSICS.DEFAULT_SPEED;
                         if (newState.isBlocking) speed *= PHYSICS.BLOCK_SPEED_FACTOR;
@@ -108,8 +112,8 @@ export function applyInputToState(
             break;
         case 'jump':
             if (keyState === 'pressed') {
-                // Only allow jump if grounded and not dashing/attacking
-                if (newState.isGrounded && !newState.isDashing && !newState.isDownDashing && !newState.isAttacking) {
+                // Only allow jump if grounded and not dashing/attacking/staggered
+                if (newState.isGrounded && !newState.isDashing && !newState.isDownDashing && !newState.isAttacking && !newState.isStaggered) {
                     newState.vy = PHYSICS.JUMP_STRENGTH;
                 }
             } else if (keyState === 'released') {
@@ -120,7 +124,7 @@ export function applyInputToState(
             }
             break;
         case 'dash':
-            if (keyState === 'pressed' && !newState.isDashing && !newState.isDownDashing && !newState.isBlocking && !newState.isAttacking && newState.dashCooldown <= 0) {
+            if (keyState === 'pressed' && !newState.isDashing && !newState.isDownDashing && !newState.isBlocking && !newState.isAttacking && !newState.isStaggered && newState.dashCooldown <= 0) {
                 if (newState.isGrounded || newState.hasAirDash) {
                     newState.isDashing = true;
                     newState.dashTimer = PHYSICS.DASH_DURATION;
@@ -134,7 +138,7 @@ export function applyInputToState(
             }
             break;
         case 'downdash':
-            if (keyState === 'pressed' && !newState.isGrounded && !newState.isDashing && !newState.isDownDashing && !newState.isBlocking && !newState.isAttacking && newState.dashCooldown <= 0) {
+            if (keyState === 'pressed' && !newState.isGrounded && !newState.isDashing && !newState.isDownDashing && !newState.isBlocking && !newState.isAttacking && !newState.isStaggered && newState.dashCooldown <= 0) {
                 newState.isDownDashing = true;
                 newState.dashTimer = PHYSICS.DOWN_DASH_DURATION;
                 newState.dashCooldown = PHYSICS.DASH_COOLDOWN_TIME;
@@ -144,7 +148,7 @@ export function applyInputToState(
             }
             break;
         case 'attack':
-            if (keyState === 'pressed' && !newState.isAttacking && !newState.isBlocking && !newState.isDashing && !newState.isDownDashing && newState.attackCooldown <= 0) {
+            if (keyState === 'pressed' && !newState.isAttacking && !newState.isBlocking && !newState.isDashing && !newState.isDownDashing && !newState.isStaggered && newState.attackCooldown <= 0) {
                 newState.isAttacking = true;
                 newState.attackHitChecked = false; // reset for this new swing
                 newState.attackTimer = PHYSICS.ATTACK_DURATION;
@@ -154,7 +158,7 @@ export function applyInputToState(
             break;
         case 'block':
             if (keyState === 'pressed') {
-                if (!newState.isAttacking) {
+                if (!newState.isAttacking && !newState.isStaggered) {
                     newState.isBlocking = true;
                     newState.blockTimer = 0; // reset parry window on fresh block press
                 }
@@ -235,10 +239,34 @@ export function simulatePhysics(state: PlayerState, deltaTime: number): PlayerSt
     }
 
     // --- Posture recovery ---
-    if (!newState.isBlocking && !newState.isAttacking && newState.posture > 0) {
+    if (!newState.isBlocking && !newState.isAttacking && !newState.isStaggered && newState.posture > 0) {
         newState.posture -= PHYSICS.POSTURE_RECOVERY_RATE * deltaTime;
         if (newState.posture < 0) {
             newState.posture = 0;
+        }
+    }
+
+    // --- Stagger timer ---
+    if (newState.isStaggered) {
+        // Also cancel any active dashes
+        newState.isDashing = false;
+        newState.isDownDashing = false;
+        newState.dashTimer = 0;
+
+        newState.staggerTimer -= deltaTime;
+        if (newState.staggerTimer <= 0) {
+            newState.isStaggered = false;
+            newState.staggerTimer = 0;
+            // Restore velocity based on held keys
+            let speed = PHYSICS.DEFAULT_SPEED;
+            if (newState.isBlocking) speed *= PHYSICS.BLOCK_SPEED_FACTOR;
+            if (newState.isHoldingLeft && !newState.isHoldingRight) {
+                newState.vx = -speed;
+            } else if (newState.isHoldingRight && !newState.isHoldingLeft) {
+                newState.vx = speed;
+            } else {
+                newState.vx = 0;
+            }
         }
     }
 
@@ -292,6 +320,11 @@ export function simulatePhysics(state: PlayerState, deltaTime: number): PlayerSt
 
     // --- Attack movement lock ---
     if (newState.isAttacking) {
+        newState.vx = 0;
+    }
+
+    // --- Stagger movement lock ---
+    if (newState.isStaggered) {
         newState.vx = 0;
     }
 
@@ -395,4 +428,3 @@ export function resetPrediction(): void {
     nextSequenceNumber = 1;
     pendingInputs.length = 0;
 }
-

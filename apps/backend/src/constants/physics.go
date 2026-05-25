@@ -75,4 +75,16 @@ const (
 
 	// PostureRecoveryRate is the posture decay rate per second when idle (not blocking, not attacking).
 	PostureRecoveryRate = 20.0
+
+	// MaxHealth is the starting health pool for each player.
+	MaxHealth = 100.0
+
+	// StaggerDuration is the stun duration in seconds when posture breaks.
+	StaggerDuration = 1.2
+
+	// HitHPDamage is the health damage from a raw (unblocked) hit.
+	HitHPDamage = 20.0
+
+	// CriticalHPDamage is the health damage dealt to a staggered/defenseless player.
+	CriticalHPDamage = 50.0
 )

@@ -31,6 +31,10 @@ const POINTER_H = 14;
 const POSTURE_BAR_W = 44;
 const POSTURE_BAR_H = 4;
 const POSTURE_BAR_OFFSET_Y = 8; // pixels below the player's feet
+// Health bar dimensions
+const HEALTH_BAR_W = 44;
+const HEALTH_BAR_H = 4;
+const HEALTH_BAR_OFFSET_Y = -6; // pixels above the player's head
 
 
 // A timestamped position snapshot received from the server
@@ -47,6 +51,8 @@ type PositionSnapshot = {
 	isAttacking: boolean;
 	posture: number;
 	lastHitResult: string;
+	health: number;
+	isStaggered: boolean;
 };
 
 export class PlayerEntity {
@@ -56,6 +62,8 @@ export class PlayerEntity {
 	private attackHitbox: Phaser.GameObjects.Rectangle;
 	private postureBarBg: Phaser.GameObjects.Rectangle;
 	private postureBarFill: Phaser.GameObjects.Rectangle;
+	private healthBarBg: Phaser.GameObjects.Rectangle;
+	private healthBarFill: Phaser.GameObjects.Rectangle;
 	private playerId: string;
 	private isLocalPlayer: boolean;
 
@@ -68,6 +76,8 @@ export class PlayerEntity {
 	private currentIsAttacking: boolean = false;
 	private currentPosture: number = 0;
 	private currentLastHitResult: string = '';
+	private currentHealth: number = 100;
+	private currentIsStaggered: boolean = false;
 
 	// Hit flash state: timer counts down in ms, color applied while > 0
 	private hitFlashTimer: number = 0;
@@ -130,6 +140,15 @@ export class PlayerEntity {
 		this.postureBarFill.setAlpha(0.9);
 		this.postureBarFill.setVisible(false);
 
+		// Health bar (background track + fill) — above the player's head
+		const healthBarY = y - PHYSICS.BODY_HEIGHT + HEALTH_BAR_OFFSET_Y;
+		this.healthBarBg = scene.add.rectangle(x, healthBarY, HEALTH_BAR_W, HEALTH_BAR_H, 0x333333);
+		this.healthBarBg.setOrigin(0.5, 1);
+		this.healthBarBg.setAlpha(0.7);
+		this.healthBarFill = scene.add.rectangle(x - HEALTH_BAR_W / 2, healthBarY, HEALTH_BAR_W, HEALTH_BAR_H, 0x48bb78);
+		this.healthBarFill.setOrigin(0, 1);
+		this.healthBarFill.setAlpha(0.9);
+
 		// Initialize physics position for local player
 		if (isLocalPlayer) {
 			this.physicsX = x;
@@ -150,7 +169,9 @@ export class PlayerEntity {
 				isBlocking: initialState.isBlocking ?? false,
 				isAttacking: initialState.isAttacking ?? false,
 				posture: initialState.posture ?? 0,
-				lastHitResult: initialState.lastHitResult ?? ''
+				lastHitResult: initialState.lastHitResult ?? '',
+				health: initialState.health ?? 100,
+				isStaggered: initialState.isStaggered ?? false
 			});
 		}
 
@@ -194,6 +215,8 @@ export class PlayerEntity {
 			this.currentIsAttacking = state.isAttacking;
 			this.currentPosture = state.posture ?? 0;
 			this.currentLastHitResult = state.lastHitResult ?? '';
+			this.currentHealth = state.health ?? 100;
+			this.currentIsStaggered = state.isStaggered ?? false;
 		} else {
 			const updateTime = state.lastUpdateTime ?? performance.now();
 			// Skip if we already processed this exact packet
@@ -212,7 +235,9 @@ export class PlayerEntity {
 				isBlocking: state.isBlocking ?? false,
 				isAttacking: state.isAttacking ?? false,
 				posture: state.posture ?? 0,
-				lastHitResult: state.lastHitResult ?? ''
+				lastHitResult: state.lastHitResult ?? '',
+				health: state.health ?? 100,
+				isStaggered: state.isStaggered ?? false
 			});
 		}
 
@@ -222,7 +247,7 @@ export class PlayerEntity {
 	/**
 	 * Called by MainScene's tickLocalPlayer() to advance the local player's
 	 * physics position between server packets. Routes through the visual
-	 * offset system so reconciliation smoothing is preserved.
+	 * offset system so reconciliation visual smoothing is preserved.
 	 */
 	updateLocalPhysicsPosition(x: number, y: number): void {
 		this.physicsX = x;
@@ -279,6 +304,8 @@ export class PlayerEntity {
 			this.currentIsAttacking = snap.isAttacking;
 			this.currentPosture = snap.posture;
 			this.currentLastHitResult = snap.lastHitResult;
+			this.currentHealth = snap.health;
+			this.currentIsStaggered = snap.isStaggered;
 			this.updateVisuals(snap.isGrounded);
 			return;
 		}
@@ -297,6 +324,8 @@ export class PlayerEntity {
 			this.currentIsAttacking = newest.isAttacking;
 			this.currentPosture = newest.posture;
 			this.currentLastHitResult = newest.lastHitResult;
+			this.currentHealth = newest.health;
+			this.currentIsStaggered = newest.isStaggered;
 			this.updateVisuals(newest.isGrounded);
 			return;
 		}
@@ -335,6 +364,8 @@ export class PlayerEntity {
 		this.currentIsAttacking = snap.isAttacking;
 		this.currentPosture = snap.posture;
 		this.currentLastHitResult = snap.lastHitResult;
+		this.currentHealth = snap.health;
+		this.currentIsStaggered = snap.isStaggered;
 
 		this.sprite.setPosition(interpolatedX, interpolatedY);
 		this.updatePointerPosition(interpolatedX, interpolatedY);
@@ -362,6 +393,8 @@ export class PlayerEntity {
 		this.attackHitbox.destroy();
 		this.postureBarBg.destroy();
 		this.postureBarFill.destroy();
+		this.healthBarBg.destroy();
+		this.healthBarFill.destroy();
 		this.facingPointer.destroy();
 		this.sprite.destroy();
 	}
@@ -393,8 +426,8 @@ export class PlayerEntity {
 	}
 
 	/**
-	 * Update fill color, alpha, hit flash effects, and posture bar
-	 * based on current player state.
+	 * Update fill color, alpha, hit flash effects, posture bar, health bar,
+	 * and stagger shake based on current player state.
 	 */
 	private updateVisuals(isGrounded: boolean): void {
 		let color: number;
@@ -458,6 +491,28 @@ export class PlayerEntity {
 		const fillColor = postureRatio < 0.5 ? 0xf6ad55 : postureRatio < 0.85 ? 0xed8936 : 0xe53e3e;
 		this.postureBarFill.setFillStyle(fillColor);
 		this.postureBarFill.setVisible(barVisible);
+
+		// --- Health bar ---
+		const healthRatio = Math.max(this.currentHealth / PHYSICS.MAX_HEALTH, 0);
+		const healthBarX = this.sprite.x;
+		const healthBarY = this.sprite.y - PHYSICS.BODY_HEIGHT + HEALTH_BAR_OFFSET_Y;
+		this.healthBarBg.setPosition(healthBarX, healthBarY);
+		this.healthBarFill.setPosition(healthBarX - HEALTH_BAR_W / 2, healthBarY);
+		this.healthBarFill.setSize(HEALTH_BAR_W * healthRatio, HEALTH_BAR_H);
+		// Color transitions: green → yellow → red as HP drops
+		const hpColor = healthRatio > 0.6 ? 0x48bb78 : healthRatio > 0.3 ? 0xecc94b : 0xe53e3e;
+		this.healthBarFill.setFillStyle(hpColor);
+
+		// --- Stagger shake ---
+		if (this.currentIsStaggered) {
+			// Override color to alternating red/purple
+			const staggerFlash = Math.floor(performance.now() / 100) % 2 === 0 ? 0xe53e3e : 0x9f7aea;
+			this.sprite.setFillStyle(staggerFlash);
+			// Shake the sprite ±2px randomly
+			const shakeX = (Math.random() - 0.5) * 4;
+			const shakeY = (Math.random() - 0.5) * 4;
+			this.sprite.setPosition(this.sprite.x + shakeX, this.sprite.y + shakeY);
+		}
 
 		// Slightly dim the player when airborne and air dash is spent
 		if (!isGrounded && !this.currentHasAirDash && !this.currentIsDashing && !this.currentIsDownDashing) {
