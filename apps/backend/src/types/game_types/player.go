@@ -34,6 +34,10 @@ type PlayerState struct {
 	IsAttacking     bool    `json:"isAttacking"`
 	AttackTimer     float64 `json:"attackTimer"`
 	AttackCooldown  float64 `json:"attackCooldown"`
+	AttackHitChecked bool   `json:"attackHitChecked"` // true after hit check fires for this swing (prevents multi-hit)
+	Posture         float64 `json:"posture"`          // current posture build-up (0=fresh, 100=broken)
+	BlockTimer      float64 `json:"blockTimer"`       // time since block was pressed (for parry window detection)
+	LastHitResult   string  `json:"lastHitResult"`    // "" | "hit" | "blocked" | "deflected" — reset each tick
 }
 
 type PlayerSnapshot struct {

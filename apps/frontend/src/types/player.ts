@@ -26,6 +26,10 @@ export type PlayerState = {
 	isAttacking: boolean;
 	attackTimer: number;
 	attackCooldown: number;
+	attackHitChecked: boolean; // true after hit check fires for this swing (prevents multi-hit)
+	posture: number;           // current posture build-up (0=fresh, 100=broken)
+	blockTimer: number;        // time since block was pressed (for parry window detection)
+	lastHitResult: string;     // "" | "hit" | "blocked" | "deflected" — reset each tick
 	lastUpdateTime?: number;
 };
 

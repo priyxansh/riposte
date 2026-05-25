@@ -50,4 +50,29 @@ const (
 
 	// AttackHeight is the vertical height of the attack hitbox in pixels
 	AttackHeight = 30.0
+
+	// BodyWidth is the player rectangle width in pixels (must match frontend BODY_W)
+	BodyWidth = 40.0
+
+	// BodyHeight is the player rectangle height in pixels (must match frontend BODY_H)
+	BodyHeight = 40.0
+
+	// ParryWindow is the time in seconds after pressing block during which a
+	// successful hit counts as a perfect deflect instead of a normal block.
+	ParryWindow = 0.1
+
+	// MaxPosture is the posture threshold at which a player becomes staggered.
+	MaxPosture = 100.0
+
+	// BlockPostureDamage is the posture build-up on the defender from blocking a hit.
+	BlockPostureDamage = 15.0
+
+	// HitPostureDamage is the posture build-up on the defender from taking a raw hit.
+	HitPostureDamage = 30.0
+
+	// DeflectPostureDamage is the posture damage reflected back to the attacker on a perfect deflect.
+	DeflectPostureDamage = 25.0
+
+	// PostureRecoveryRate is the posture decay rate per second when idle (not blocking, not attacking).
+	PostureRecoveryRate = 20.0
 )

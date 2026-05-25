@@ -18,15 +18,20 @@ const COLORS = {
 	BLOCK: 0x90cdf4, // Light blue — blocking stance
 	ATTACK: 0xff4444, // Red — attacking
 	ATTACK_HITBOX: 0xff0000, // Bright red — attack hitbox overlay
-	FACING_POINTER: 0x1a202c // Dark accent for facing indicator
+	FACING_POINTER: 0x1a202c, // Dark accent for facing indicator
+	HIT_FLASH: 0xff2222, // Red flash on taking a raw hit
+	BLOCK_FLASH: 0xffee44, // Yellow flash on blocking
+	DEFLECT_FLASH: 0x00ffff // Cyan flash on perfect deflect
 } as const;
 
-// Player body dimensions
-const BODY_W = 40;
-const BODY_H = 40;
-// Facing indicator dimensions
+// Facing indicator dimensions (body dimensions are now in PHYSICS constants)
 const POINTER_W = 6;
 const POINTER_H = 14;
+// Posture bar dimensions
+const POSTURE_BAR_W = 44;
+const POSTURE_BAR_H = 4;
+const POSTURE_BAR_OFFSET_Y = 8; // pixels below the player's feet
+
 
 // A timestamped position snapshot received from the server
 type PositionSnapshot = {
@@ -40,6 +45,8 @@ type PositionSnapshot = {
 	hasAirDash: boolean;
 	isBlocking: boolean;
 	isAttacking: boolean;
+	posture: number;
+	lastHitResult: string;
 };
 
 export class PlayerEntity {
@@ -47,6 +54,8 @@ export class PlayerEntity {
 	private sprite: Phaser.GameObjects.Rectangle;
 	private facingPointer: Phaser.GameObjects.Rectangle;
 	private attackHitbox: Phaser.GameObjects.Rectangle;
+	private postureBarBg: Phaser.GameObjects.Rectangle;
+	private postureBarFill: Phaser.GameObjects.Rectangle;
 	private playerId: string;
 	private isLocalPlayer: boolean;
 
@@ -57,6 +66,12 @@ export class PlayerEntity {
 	private currentHasAirDash: boolean = true;
 	private currentIsBlocking: boolean = false;
 	private currentIsAttacking: boolean = false;
+	private currentPosture: number = 0;
+	private currentLastHitResult: string = '';
+
+	// Hit flash state: timer counts down in ms, color applied while > 0
+	private hitFlashTimer: number = 0;
+	private hitFlashColor: number = 0;
 
 	// Tracks the last server packet we processed to prevent duplicating snapshots on every frame
 	private lastProcessedUpdate: number = 0;
@@ -90,7 +105,7 @@ export class PlayerEntity {
 
 		const x = initialState?.x ?? 400;
 		const y = initialState?.y ?? 500;
-		this.sprite = scene.add.rectangle(x, y, BODY_W, BODY_H, color);
+		this.sprite = scene.add.rectangle(x, y, PHYSICS.BODY_WIDTH, PHYSICS.BODY_HEIGHT, color);
 		this.sprite.setOrigin(0.5, 1); // Bottom-center for ground alignment
 
 		// Facing direction indicator — a small dark rectangle on the leading edge
@@ -104,6 +119,16 @@ export class PlayerEntity {
 		this.attackHitbox.setOrigin(0.5, 0.5);
 		this.attackHitbox.setAlpha(0.4);
 		this.attackHitbox.setVisible(false);
+
+		// Posture bar (background track + fill)
+		this.postureBarBg = scene.add.rectangle(x, y + POSTURE_BAR_OFFSET_Y, POSTURE_BAR_W, POSTURE_BAR_H, 0x333333);
+		this.postureBarBg.setOrigin(0.5, 0);
+		this.postureBarBg.setAlpha(0.7);
+		this.postureBarBg.setVisible(false); // hidden when posture is 0
+		this.postureBarFill = scene.add.rectangle(x - POSTURE_BAR_W / 2, y + POSTURE_BAR_OFFSET_Y, 0, POSTURE_BAR_H, 0xf6ad55);
+		this.postureBarFill.setOrigin(0, 0);
+		this.postureBarFill.setAlpha(0.9);
+		this.postureBarFill.setVisible(false);
 
 		// Initialize physics position for local player
 		if (isLocalPlayer) {
@@ -123,7 +148,9 @@ export class PlayerEntity {
 				isDownDashing: initialState.isDownDashing ?? false,
 				hasAirDash: initialState.hasAirDash ?? true,
 				isBlocking: initialState.isBlocking ?? false,
-				isAttacking: initialState.isAttacking ?? false
+				isAttacking: initialState.isAttacking ?? false,
+				posture: initialState.posture ?? 0,
+				lastHitResult: initialState.lastHitResult ?? ''
 			});
 		}
 
@@ -165,6 +192,8 @@ export class PlayerEntity {
 			this.currentHasAirDash = state.hasAirDash;
 			this.currentIsBlocking = state.isBlocking;
 			this.currentIsAttacking = state.isAttacking;
+			this.currentPosture = state.posture ?? 0;
+			this.currentLastHitResult = state.lastHitResult ?? '';
 		} else {
 			const updateTime = state.lastUpdateTime ?? performance.now();
 			// Skip if we already processed this exact packet
@@ -181,7 +210,9 @@ export class PlayerEntity {
 				isDownDashing: state.isDownDashing ?? false,
 				hasAirDash: state.hasAirDash ?? true,
 				isBlocking: state.isBlocking ?? false,
-				isAttacking: state.isAttacking ?? false
+				isAttacking: state.isAttacking ?? false,
+				posture: state.posture ?? 0,
+				lastHitResult: state.lastHitResult ?? ''
 			});
 		}
 
@@ -246,6 +277,8 @@ export class PlayerEntity {
 			this.currentHasAirDash = snap.hasAirDash;
 			this.currentIsBlocking = snap.isBlocking;
 			this.currentIsAttacking = snap.isAttacking;
+			this.currentPosture = snap.posture;
+			this.currentLastHitResult = snap.lastHitResult;
 			this.updateVisuals(snap.isGrounded);
 			return;
 		}
@@ -262,6 +295,8 @@ export class PlayerEntity {
 			this.currentHasAirDash = newest.hasAirDash;
 			this.currentIsBlocking = newest.isBlocking;
 			this.currentIsAttacking = newest.isAttacking;
+			this.currentPosture = newest.posture;
+			this.currentLastHitResult = newest.lastHitResult;
 			this.updateVisuals(newest.isGrounded);
 			return;
 		}
@@ -298,6 +333,8 @@ export class PlayerEntity {
 		this.currentHasAirDash = snap.hasAirDash;
 		this.currentIsBlocking = snap.isBlocking;
 		this.currentIsAttacking = snap.isAttacking;
+		this.currentPosture = snap.posture;
+		this.currentLastHitResult = snap.lastHitResult;
 
 		this.sprite.setPosition(interpolatedX, interpolatedY);
 		this.updatePointerPosition(interpolatedX, interpolatedY);
@@ -323,6 +360,8 @@ export class PlayerEntity {
 	destroy(): void {
 		console.log(`[PlayerEntity] Destroying player: ${this.playerId}`);
 		this.attackHitbox.destroy();
+		this.postureBarBg.destroy();
+		this.postureBarFill.destroy();
 		this.facingPointer.destroy();
 		this.sprite.destroy();
 	}
@@ -347,20 +386,41 @@ export class PlayerEntity {
 	 */
 	private updatePointerPosition(spriteX: number, spriteY: number): void {
 		const edgeX = this.currentFacing === 1
-			? spriteX + BODY_W / 2 - POINTER_W / 2
-			: spriteX - BODY_W / 2 + POINTER_W / 2;
-		const centerY = spriteY - BODY_H / 2;
+			? spriteX + PHYSICS.BODY_WIDTH / 2 - POINTER_W / 2
+			: spriteX - PHYSICS.BODY_WIDTH / 2 + POINTER_W / 2;
+		const centerY = spriteY - PHYSICS.BODY_HEIGHT / 2;
 		this.facingPointer.setPosition(edgeX, centerY);
 	}
 
 	/**
-	 * Update fill color and alpha based on dash state, grounded state,
-	 * and whether the air dash has been used.
+	 * Update fill color, alpha, hit flash effects, and posture bar
+	 * based on current player state.
 	 */
 	private updateVisuals(isGrounded: boolean): void {
 		let color: number;
 
-		if (this.currentIsDownDashing) {
+		// --- Hit flash: triggered by lastHitResult, overrides normal color ---
+		if (this.currentLastHitResult === 'hit') {
+			this.hitFlashTimer = 100; // 100ms flash
+			this.hitFlashColor = COLORS.HIT_FLASH;
+			this.currentLastHitResult = ''; // consume so it only triggers once
+		} else if (this.currentLastHitResult === 'blocked') {
+			this.hitFlashTimer = 80;
+			this.hitFlashColor = COLORS.BLOCK_FLASH;
+			this.currentLastHitResult = '';
+		} else if (this.currentLastHitResult === 'deflected') {
+			this.hitFlashTimer = 120;
+			this.hitFlashColor = COLORS.DEFLECT_FLASH;
+			this.currentLastHitResult = '';
+		}
+
+		if (this.hitFlashTimer > 0) {
+			// Decay flash timer using a rough per-frame estimate
+			// The Phaser scene update provides delta via tickLocalPlayer but
+			// updateVisuals is called without delta. We approximate 16ms/frame.
+			this.hitFlashTimer -= 16;
+			color = this.hitFlashColor;
+		} else if (this.currentIsDownDashing) {
 			color = COLORS.DOWN_DASH;
 		} else if (this.currentIsDashing) {
 			color = COLORS.DASH;
@@ -378,12 +438,26 @@ export class PlayerEntity {
 		// --- Attack hitbox visual ---
 		if (this.currentIsAttacking) {
 			this.attackHitbox.setVisible(true);
-			const hitboxX = this.sprite.x + (this.currentFacing * (BODY_W / 2 + PHYSICS.ATTACK_WIDTH / 2));
-			const hitboxY = this.sprite.y - BODY_H / 2;
+			const hitboxX = this.sprite.x + (this.currentFacing * (PHYSICS.BODY_WIDTH / 2 + PHYSICS.ATTACK_WIDTH / 2));
+			const hitboxY = this.sprite.y - PHYSICS.BODY_HEIGHT / 2;
 			this.attackHitbox.setPosition(hitboxX, hitboxY);
 		} else {
 			this.attackHitbox.setVisible(false);
 		}
+
+		// --- Posture bar ---
+		const postureRatio = Math.min(this.currentPosture / PHYSICS.MAX_POSTURE, 1);
+		const barVisible = this.currentPosture > 0;
+		const barX = this.sprite.x;
+		const barY = this.sprite.y + POSTURE_BAR_OFFSET_Y;
+		this.postureBarBg.setPosition(barX, barY);
+		this.postureBarBg.setVisible(barVisible);
+		this.postureBarFill.setPosition(barX - POSTURE_BAR_W / 2, barY);
+		this.postureBarFill.setSize(POSTURE_BAR_W * postureRatio, POSTURE_BAR_H);
+		// Color transitions: yellow → orange → red as posture fills
+		const fillColor = postureRatio < 0.5 ? 0xf6ad55 : postureRatio < 0.85 ? 0xed8936 : 0xe53e3e;
+		this.postureBarFill.setFillStyle(fillColor);
+		this.postureBarFill.setVisible(barVisible);
 
 		// Slightly dim the player when airborne and air dash is spent
 		if (!isGrounded && !this.currentHasAirDash && !this.currentIsDashing && !this.currentIsDownDashing) {

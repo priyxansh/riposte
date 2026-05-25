@@ -16,8 +16,6 @@ let nextSequenceNumber = 1;
 // Buffer of unacknowledged inputs
 const pendingInputs: BufferedInput[] = [];
 
-// Current predicted velocity (not state - state comes from server)
-let predictedVX = 0;
 
 /**
  * Generate the next sequence number for an input
@@ -148,6 +146,7 @@ export function applyInputToState(
         case 'attack':
             if (keyState === 'pressed' && !newState.isAttacking && !newState.isBlocking && !newState.isDashing && !newState.isDownDashing && newState.attackCooldown <= 0) {
                 newState.isAttacking = true;
+                newState.attackHitChecked = false; // reset for this new swing
                 newState.attackTimer = PHYSICS.ATTACK_DURATION;
                 newState.attackCooldown = PHYSICS.ATTACK_COOLDOWN_TIME;
                 newState.vx = 0;
@@ -157,6 +156,7 @@ export function applyInputToState(
             if (keyState === 'pressed') {
                 if (!newState.isAttacking) {
                     newState.isBlocking = true;
+                    newState.blockTimer = 0; // reset parry window on fresh block press
                 }
                 // Cannot apply block speed while dashing or attacking
                 if (!newState.isDashing && !newState.isDownDashing && !newState.isAttacking) {
@@ -226,6 +226,19 @@ export function simulatePhysics(state: PlayerState, deltaTime: number): PlayerSt
             } else {
                 newState.vx = 0;
             }
+        }
+    }
+
+    // --- Block timer (parry window) ---
+    if (newState.isBlocking) {
+        newState.blockTimer += deltaTime;
+    }
+
+    // --- Posture recovery ---
+    if (!newState.isBlocking && !newState.isAttacking && newState.posture > 0) {
+        newState.posture -= PHYSICS.POSTURE_RECOVERY_RATE * deltaTime;
+        if (newState.posture < 0) {
+            newState.posture = 0;
         }
     }
 
@@ -381,6 +394,5 @@ export function reconcile(
 export function resetPrediction(): void {
     nextSequenceNumber = 1;
     pendingInputs.length = 0;
-    predictedVX = 0;
 }
 

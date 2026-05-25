@@ -121,6 +121,19 @@ func StartGameLoop(roomID string) error {
 							}
 						}
 
+						// --- Block timer (parry window) ---
+						if s.IsBlocking {
+							s.BlockTimer += constants.FixedDeltaTime
+						}
+
+						// --- Posture recovery ---
+						if !s.IsBlocking && !s.IsAttacking && s.Posture > 0 {
+							s.Posture -= constants.PostureRecoveryRate * constants.FixedDeltaTime
+							if s.Posture < 0 {
+								s.Posture = 0
+							}
+						}
+
 						// --- Dash physics ---
 						if s.IsDashing {
 							// Horizontal dash: force velocity, skip gravity
@@ -213,6 +226,87 @@ func StartGameLoop(roomID string) error {
 					}
 
 					accumulator -= constants.FixedDeltaTime
+				}
+
+				// --- Server-only hit resolution pass ---
+				// Runs after all players' physics are fully updated for this tick.
+				// Checks attacker hitboxes against all other players' body boxes.
+				for _, attacker := range room.Players {
+					if attacker.Conn == nil || attacker.State == nil {
+						continue
+					}
+					a := attacker.State
+
+					// Reset hit result every tick so stale results don't persist
+					a.LastHitResult = ""
+
+					// Only check if actively attacking and not yet checked this swing
+					if !a.IsAttacking || a.AttackHitChecked {
+						continue
+					}
+					a.AttackHitChecked = true
+
+					// Compute attacker hitbox (matches frontend PlayerEntity.ts visual exactly)
+					// hitboxCenterX = X + facing * (BodyWidth/2 + AttackWidth/2)
+					hitboxCenterX := a.X + float64(a.FacingDirection)*(constants.BodyWidth/2+constants.AttackWidth/2)
+					hitboxCenterY := a.Y - constants.BodyHeight/2
+
+					attackerLeft := hitboxCenterX - constants.AttackWidth/2
+					attackerRight := hitboxCenterX + constants.AttackWidth/2
+					attackerTop := hitboxCenterY - constants.AttackHeight/2
+					attackerBottom := hitboxCenterY + constants.AttackHeight/2
+
+					for _, defender := range room.Players {
+						if defender.Metadata.ID == attacker.Metadata.ID {
+							continue // skip self
+						}
+						if defender.Conn == nil || defender.State == nil {
+							continue
+						}
+						d := defender.State
+
+						// Compute defender body box (origin = bottom-center)
+						defenderLeft := d.X - constants.BodyWidth/2
+						defenderRight := d.X + constants.BodyWidth/2
+						defenderTop := d.Y - constants.BodyHeight
+						defenderBottom := d.Y
+
+						// AABB overlap check
+						if attackerRight <= defenderLeft || attackerLeft >= defenderRight ||
+							attackerBottom <= defenderTop || attackerTop >= defenderBottom {
+							continue // no overlap
+						}
+
+						// Hit landed — evaluate defender's state
+						// Block-during-dash guard: dashing players are vulnerable even if IsBlocking=true
+						isDefenderBlocking := d.IsBlocking && !d.IsDashing && !d.IsDownDashing
+
+						if isDefenderBlocking && d.BlockTimer <= constants.ParryWindow {
+							// Perfect deflect — punish the attacker's posture
+							a.Posture += constants.DeflectPostureDamage
+							if a.Posture > constants.MaxPosture {
+								a.Posture = constants.MaxPosture
+							}
+							a.LastHitResult = "deflected"
+							d.LastHitResult = "deflected"
+						} else if isDefenderBlocking {
+							// Normal block — defender absorbs posture damage
+							d.Posture += constants.BlockPostureDamage
+							if d.Posture > constants.MaxPosture {
+								d.Posture = constants.MaxPosture
+							}
+							a.LastHitResult = "blocked"
+							d.LastHitResult = "blocked"
+						} else {
+							// Raw hit — defender takes posture damage (HP added in Step 4)
+							d.Posture += constants.HitPostureDamage
+							if d.Posture > constants.MaxPosture {
+								d.Posture = constants.MaxPosture
+							}
+							a.LastHitResult = "hit"
+							d.LastHitResult = "hit"
+						}
+					}
 				}
 
 				// After all physics steps, snapshot every player's state for broadcast
@@ -374,6 +468,7 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 			case "attack":
 				if payload.KeyState == "pressed" && !s.IsAttacking && !s.IsBlocking && !s.IsDashing && !s.IsDownDashing && s.AttackCooldown <= 0 {
 					s.IsAttacking = true
+					s.AttackHitChecked = false // reset for this new swing
 					s.AttackTimer = constants.AttackDuration
 					s.AttackCooldown = constants.AttackCooldownTime
 					s.VX = 0
@@ -382,6 +477,7 @@ func MovePlayer(roomID string, payload eventpayloads.MovePlayerPayload) error {
 				if payload.KeyState == "pressed" {
 					if !s.IsAttacking {
 						s.IsBlocking = true
+						s.BlockTimer = 0 // reset parry window on fresh block press
 					}
 					// Cannot apply block speed while dashing or attacking
 					if !s.IsDashing && !s.IsDownDashing && !s.IsAttacking {

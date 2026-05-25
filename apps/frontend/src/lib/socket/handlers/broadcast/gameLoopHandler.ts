@@ -43,6 +43,10 @@ export const gameLoopHandler = (
 			isAttacking: player.state.isAttacking ?? false,
 			attackTimer: player.state.attackTimer ?? 0,
 			attackCooldown: player.state.attackCooldown ?? 0,
+			attackHitChecked: player.state.attackHitChecked ?? false,
+			posture: player.state.posture ?? 0,
+			blockTimer: player.state.blockTimer ?? 0,
+			lastHitResult: player.state.lastHitResult ?? '',
 			lastUpdateTime: performance.now()
 		};
 

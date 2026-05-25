@@ -17,5 +17,13 @@ export const PHYSICS = {
     ATTACK_COOLDOWN_TIME: 0.4, // seconds — minimum time between attacks
     ATTACK_WIDTH: 40.0, // pixels — horizontal reach of attack hitbox
     ATTACK_HEIGHT: 30.0, // pixels — vertical height of attack hitbox
+    BODY_WIDTH: 40.0, // pixels — player rectangle width (must match backend BodyWidth)
+    BODY_HEIGHT: 40.0, // pixels — player rectangle height (must match backend BodyHeight)
+    PARRY_WINDOW: 0.1, // seconds — perfect deflect window after pressing block
+    MAX_POSTURE: 100.0, // posture break threshold
+    BLOCK_POSTURE_DAMAGE: 15.0, // posture build-up on defender from blocking a hit
+    HIT_POSTURE_DAMAGE: 30.0, // posture build-up on defender from a raw hit
+    DEFLECT_POSTURE_DAMAGE: 25.0, // posture damage reflected to attacker on perfect deflect
+    POSTURE_RECOVERY_RATE: 20.0, // posture decay per second when idle
 } as const;
 
