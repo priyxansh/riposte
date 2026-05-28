@@ -62,6 +62,7 @@ export const gameLoopHandler = (
 		return {
 			id: player.id,
 			name: player.name,
+			isBot: player.isBot,
 			state
 		};
 	});

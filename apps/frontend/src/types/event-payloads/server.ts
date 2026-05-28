@@ -60,3 +60,10 @@ export type GameLoopResponse = {
 	playerStates: PlayerSnapshot[];
 	lastProcessedInput: Record<string, number>; // playerID -> last processed sequence number
 };
+
+export type AddBotResponse = {
+	botId: string;
+	botName: string;
+};
+
+export type SetBotBehaviorResponse = {};

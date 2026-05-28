@@ -23,6 +23,7 @@
 	import { startGameHandler } from '$lib/socket/handlers/startGameHandler';
 	import { gameStartedHandler } from '$lib/socket/handlers/broadcast/gameStartedHandler';
 	import { getRoomState as getRoomStateValue } from '$lib/stores/room.svelte';
+	import { addBot } from '$lib/socket/emitters/addBot';
 
 	let currentPlayerId = $state(''); // TODO: Get from user session/auth
 
@@ -108,6 +109,10 @@
 		// Emit leave room event
 		leaveRoom();
 	}
+
+	function handleSpawnBot() {
+		addBot('idle');
+	}
 </script>
 
 {#if room && currentPlayerId}
@@ -126,6 +131,18 @@
 				onToggleReady={handleToggleReady}
 				onLeaveRoom={handleLeaveRoom}
 			/>
+
+			{#if import.meta.env.DEV}
+				<div class="px-4">
+					<button
+						type="button"
+						onclick={handleSpawnBot}
+						class="w-full rounded border border-yellow-600/40 bg-yellow-600/10 px-4 py-2 text-sm text-yellow-400 transition-colors hover:bg-yellow-600/20"
+					>
+						Dev: Spawn Bot
+					</button>
+				</div>
+			{/if}
 		</div>
 	</div>
 {:else}

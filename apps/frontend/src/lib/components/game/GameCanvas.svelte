@@ -8,6 +8,7 @@
 	import { getMoveListener } from '$lib/control-listeners/moveListener';
 	import { resetPrediction } from '$lib/prediction/prediction';
 	import { launchGame, destroyGame } from '$lib/game/game';
+	import DevMenu from '$lib/components/game/DevMenu.svelte';
 
 	const GAME_CONTAINER_ID = 'phaser-game-container';
 
@@ -61,6 +62,10 @@
 	<main class="relative h-full w-full bg-gray-900">
 		<!-- Phaser renders into this container -->
 		<div id={GAME_CONTAINER_ID} class="w-full h-full"></div>
+
+		{#if import.meta.env.DEV}
+			<DevMenu />
+		{/if}
 	</main>
 {/if}
 

@@ -9,7 +9,9 @@ export const EVENTS = {
 	START_GAME: 'start_game',
 	GAME_STARTED: 'game_started',
 	GAME_LOOP: 'game_loop',
-	MOVE_PLAYER: 'move_player'
+	MOVE_PLAYER: 'move_player',
+	ADD_BOT: 'add_bot',
+	SET_BOT_BEHAVIOR: 'set_bot_behavior'
 } as const;
 
 export type EventKey = keyof typeof EVENTS;
