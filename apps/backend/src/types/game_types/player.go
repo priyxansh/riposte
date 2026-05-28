@@ -9,11 +9,14 @@ type Player struct {
 	Metadata           *PlayerMetadata `json:"metadata"`
 	State              *PlayerState    `json:"state"`
 	LastProcessedInput int             // Last input sequence number processed for this player
+	IsBot              bool            // True for server-controlled dummy players
+	BotBehavior        string          // Active AI routine: "idle" | "attack_spam" | "block" | "auto_parry"
 }
 
 type PlayerMetadata struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	IsBot bool   `json:"isBot"`
 }
 
 type PlayerState struct {

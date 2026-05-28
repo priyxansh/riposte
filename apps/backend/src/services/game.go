@@ -77,8 +77,12 @@ func StartGameLoop(roomID string) error {
 			room.DoLocked(func() {
 				// Run physics in exact FixedDeltaTime steps
 				for accumulator >= constants.FixedDeltaTime {
+					// Run AI routines before the physics pass so bot state
+					// mutations are applied within the same tick.
+					UpdateBots(room)
+
 					for _, player := range room.Players {
-						if player.Conn == nil || player.State == nil {
+						if (!player.IsBot && player.Conn == nil) || player.State == nil {
 							continue
 						}
 
@@ -258,7 +262,7 @@ func StartGameLoop(roomID string) error {
 				// Runs after all players' physics are fully updated for this tick.
 				// Checks attacker hitboxes against all other players' body boxes.
 				for _, attacker := range room.Players {
-					if attacker.Conn == nil || attacker.State == nil {
+					if (!attacker.IsBot && attacker.Conn == nil) || attacker.State == nil {
 						continue
 					}
 					a := attacker.State
@@ -286,7 +290,7 @@ func StartGameLoop(roomID string) error {
 						if defender.Metadata.ID == attacker.Metadata.ID {
 							continue // skip self
 						}
-						if defender.Conn == nil || defender.State == nil {
+						if (!defender.IsBot && defender.Conn == nil) || defender.State == nil {
 							continue
 						}
 						d := defender.State
@@ -374,7 +378,7 @@ func StartGameLoop(roomID string) error {
 						if d.Health <= 0 {
 							// Reset both players for a new round
 							for i, p := range room.Players {
-								if p.Conn == nil || p.State == nil {
+								if (!p.IsBot && p.Conn == nil) || p.State == nil {
 									continue
 								}
 								initialStates := constants.NewInitialStates1v1()
@@ -393,7 +397,7 @@ func StartGameLoop(roomID string) error {
 
 				// After all physics steps, snapshot every player's state for broadcast
 				for _, player := range room.Players {
-					if player.Conn == nil || player.State == nil {
+					if (!player.IsBot && player.Conn == nil) || player.State == nil {
 						continue
 					}
 

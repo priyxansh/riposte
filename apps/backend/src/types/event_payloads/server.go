@@ -66,3 +66,10 @@ type GameStartedResponse struct {
 }
 
 type MovePlayerResponse struct{}
+
+type AddBotResponse struct {
+	BotID   string `json:"botId"`
+	BotName string `json:"botName"`
+}
+
+type SetBotBehaviorResponse struct{}

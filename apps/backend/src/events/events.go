@@ -15,6 +15,8 @@ const (
 	PlayerDisconnect = "player_disconnect"
 	GetRoomState     = "get_room_state"
 	MovePlayer       = "move_player"
+	AddBot           = "add_bot"
+	SetBotBehavior   = "set_bot_behavior"
 
 	// Server emitted events, mainly broadcasts
 

@@ -32,3 +32,15 @@ type MovePlayerPayload struct {
 	KeyState       string `json:"keyState"`       // e.g., "pressed", "released"
 	SequenceNumber int    `json:"sequenceNumber"` // Client input sequence number for reconciliation
 }
+
+type AddBotPayload struct {
+	RoomID      string `json:"roomId"`
+	BotName     string `json:"botName"`
+	BotBehavior string `json:"botBehavior"` // "idle" | "attack_spam" | "block" | "auto_parry"
+}
+
+type SetBotBehaviorPayload struct {
+	RoomID      string `json:"roomId"`
+	BotID       string `json:"botId"`
+	BotBehavior string `json:"botBehavior"` // "idle" | "attack_spam" | "block" | "auto_parry"
+}
