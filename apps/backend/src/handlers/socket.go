@@ -76,6 +76,12 @@ func SocketHandler(c *websocket.Conn) {
 		case events.MovePlayer:
 			handleMovePlayer(c, incoming.Payload, joinedRoomID)
 
+		case events.AddBot:
+			handleAddBot(c, incoming.Payload)
+
+		case events.SetBotBehavior:
+			handleSetBotBehavior(c, incoming.Payload)
+
 		default:
 			log.Println("Unhandled event:", incoming.Event)
 		}
