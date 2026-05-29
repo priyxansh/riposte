@@ -187,8 +187,19 @@ func AddBot(roomID string, botName string, botBehavior string) (*gametypes.Playe
 	}
 
 	// Derive initial state index based on current player count
-	var botState *gametypes.PlayerState
+	var bot *gametypes.Player
+	var err error
+
 	room.DoLocked(func() {
+		maxPlayers := 2
+		if room.Mode == "2v2" {
+			maxPlayers = 4
+		}
+		if len(room.Players) >= maxPlayers {
+			err = errors.NewGameError(errors.ErrRoomFull, "room is full")
+			return
+		}
+
 		idx := len(room.Players)
 		var initialStates []*gametypes.PlayerState
 		if room.Mode == "2v2" {
@@ -196,6 +207,8 @@ func AddBot(roomID string, botName string, botBehavior string) (*gametypes.Playe
 		} else {
 			initialStates = constants.NewInitialStates1v1()
 		}
+		
+		var botState *gametypes.PlayerState
 		if idx < len(initialStates) {
 			s := *initialStates[idx] // copy to avoid aliasing
 			botState = &s
@@ -208,18 +221,15 @@ func AddBot(roomID string, botName string, botBehavior string) (*gametypes.Playe
 				Health:          constants.MaxHealth,
 			}
 		}
-	})
 
-	bot := &gametypes.Player{
-		Conn:        nil,
-		Metadata:    botMetadata,
-		State:       botState,
-		IsBot:       true,
-		BotBehavior: botBehavior,
-	}
-
-	var err error
-	room.DoLocked(func() {
+		bot = &gametypes.Player{
+			Conn:        nil,
+			Metadata:    botMetadata,
+			State:       botState,
+			IsBot:       true,
+			BotBehavior: botBehavior,
+		}
+		
 		room.Players = append(room.Players, bot)
 	})
 

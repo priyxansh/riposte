@@ -51,7 +51,13 @@ func (r *Room) RemovePlayerByID(playerID string) *PlayerMetadata {
 }
 
 func (r *Room) ConnCount() int {
-	return len(r.Players)
+	count := 0
+	for _, p := range r.Players {
+		if !p.IsBot && p.Conn != nil {
+			count++
+		}
+	}
+	return count
 }
 
 func (r *Room) DoLocked(fn func()) {

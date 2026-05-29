@@ -32,6 +32,16 @@ func StartGameLoop(roomID string) error {
 		return errors.NewGameError(errors.ErrNotEnoughPlayers, "not enough players to start")
 	}
 
+	humanCount := 0
+	for _, p := range room.Players {
+		if !p.IsBot {
+			humanCount++
+		}
+	}
+	if humanCount == 0 {
+		return errors.NewGameError(errors.ErrNotEnoughPlayers, "no human players in room")
+	}
+
 	// Assign initial states to players before starting the game loop
 	AssignInitialStates(room)
 

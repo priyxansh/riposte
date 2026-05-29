@@ -64,10 +64,7 @@ func handleJoinRoom(c *websocket.Conn, rawPayload json.RawMessage, joinedRoomID 
 
 	playerMetadataList := make([]*gametypes.PlayerMetadata, len(room.Players))
 	for i, player := range room.Players {
-		playerMetadataList[i] = &gametypes.PlayerMetadata{
-			ID:   player.Metadata.ID,
-			Name: player.Metadata.Name,
-		}
+		playerMetadataList[i] = player.Metadata
 	}
 
 	utils.SendResponse(c, events.JoinRoom, &eventpayloads.JoinRoomResponse{
